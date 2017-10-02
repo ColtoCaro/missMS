@@ -1,0 +1,16 @@
+Package: missMS
+Type: Package
+Title: Missing Data Models for Label-Free Mass Spectrometry Proteomics
+Version: 0.0.0.9000
+Authors@R: c(person("Jonathon", "O'Brien", email = "obrienj@hms.harvard.edu",
+    role = c("cre", "aut")))
+Description: This package enables the fitting of a Bayesian selction model for
+    label-free proteomics experiments.  The selection model takes into account
+    all observed and missing values which can improve on estimation accuracy.
+    All user specificiatio are made through the formatting of the data file.
+License: GPL (>=3)
+Encoding: UTF-8
+LazyData: true
+LinkingTo: Rcpp, RcppArmadillo
+Imports: Rcpp (>= 0.12.11)
+RoxygenNote: 6.0.1
