@@ -15,15 +15,6 @@ resn <- function(n_, xi, omega, alpha, tau) {
 }
 
 #' @export
-resn2 <- function(n_, xi, omega, alpha, tau) {
-    .Call('_missMS_resn2', PACKAGE = 'missMS', n_, xi, omega, alpha, tau)
-}
-
-testfn <- function(x) {
-    .Call('_missMS_testfn', PACKAGE = 'missMS', x)
-}
-
-#' @export
 rnormCpp <- function(n_) {
     .Call('_missMS_rnormCpp', PACKAGE = 'missMS', n_)
 }

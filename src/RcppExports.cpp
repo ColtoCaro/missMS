@@ -7,23 +7,8 @@
 using namespace Rcpp;
 
 // resn
-NumericVector resn(int n_, NumericVector xi, NumericVector omega, NumericVector alpha, NumericVector tau);
+NumericVector resn(int& n_, NumericVector& xi, NumericVector& omega, NumericVector& alpha, double& tau);
 RcppExport SEXP _missMS_resn(SEXP n_SEXP, SEXP xiSEXP, SEXP omegaSEXP, SEXP alphaSEXP, SEXP tauSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< int >::type n_(n_SEXP);
-    Rcpp::traits::input_parameter< NumericVector >::type xi(xiSEXP);
-    Rcpp::traits::input_parameter< NumericVector >::type omega(omegaSEXP);
-    Rcpp::traits::input_parameter< NumericVector >::type alpha(alphaSEXP);
-    Rcpp::traits::input_parameter< NumericVector >::type tau(tauSEXP);
-    rcpp_result_gen = Rcpp::wrap(resn(n_, xi, omega, alpha, tau));
-    return rcpp_result_gen;
-END_RCPP
-}
-// resn2
-NumericVector resn2(int& n_, NumericVector& xi, NumericVector& omega, NumericVector& alpha, double& tau);
-RcppExport SEXP _missMS_resn2(SEXP n_SEXP, SEXP xiSEXP, SEXP omegaSEXP, SEXP alphaSEXP, SEXP tauSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -32,18 +17,7 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< NumericVector& >::type omega(omegaSEXP);
     Rcpp::traits::input_parameter< NumericVector& >::type alpha(alphaSEXP);
     Rcpp::traits::input_parameter< double& >::type tau(tauSEXP);
-    rcpp_result_gen = Rcpp::wrap(resn2(n_, xi, omega, alpha, tau));
-    return rcpp_result_gen;
-END_RCPP
-}
-// testfn
-NumericVector testfn(NumericVector x);
-RcppExport SEXP _missMS_testfn(SEXP xSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< NumericVector >::type x(xSEXP);
-    rcpp_result_gen = Rcpp::wrap(testfn(x));
+    rcpp_result_gen = Rcpp::wrap(resn(n_, xi, omega, alpha, tau));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -61,8 +35,6 @@ END_RCPP
 
 static const R_CallMethodDef CallEntries[] = {
     {"_missMS_resn", (DL_FUNC) &_missMS_resn, 5},
-    {"_missMS_resn2", (DL_FUNC) &_missMS_resn2, 5},
-    {"_missMS_testfn", (DL_FUNC) &_missMS_testfn, 1},
     {"_missMS_rnormCpp", (DL_FUNC) &_missMS_rnormCpp, 1},
     {NULL, NULL, 0}
 };

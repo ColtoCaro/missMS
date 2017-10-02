@@ -54,21 +54,6 @@ NumericVector rnormArm(int n_) {
 
 } // end arf namespace
 
-arma::vec resnArm(int n_, arma::vec xi,
-                  arma::vec omega, arma::vec alpha,
-                   NumericVector tau) {
-  //double alph = Rcpp::as<double>(alpha) ;
-  arma::vec delta = alpha / sqrt(1 + alpha % alpha) ;
-  arma::vec lb = pnorm(-1 * tau) ;
-  arma::vec uni = arma::randu(n_) % (1 - lb) + lb ;
-  NumericVector unir = wrap(uni) ;
-  arma::vec truncN = qnorm(unir) ;
-  arma::vec z_ = delta % truncN + sqrt(1 - (delta % delta)) % arma::randn(n_) ;
-  arma::vec esn = xi + omega % z_ ;
-
-  return esn;
-}
-
 
 //' Generate a random number from an extended skew normal distribution
 //'
@@ -80,25 +65,11 @@ arma::vec resnArm(int n_, arma::vec xi,
 //'
 //' @export
 // [[Rcpp::export]]
-NumericVector resn(int n_, NumericVector xi,
-                   NumericVector omega, NumericVector alpha,
-                   NumericVector tau) {
-  //double alph = Rcpp::as<double>(alpha) ;
-  NumericVector delta = alpha / sqrt(1 + alpha * alpha) ;
-  NumericVector lb = pnorm(-1 * tau) ;
-  NumericVector uni = runif(n_) * (1 - lb) + lb ;
-  NumericVector truncN = qnorm(uni) ;
-  NumericVector z_ = delta * truncN + sqrt(1 - (delta * delta)) * rnorm(n_) ;
-  NumericVector esn = xi + omega * z_ ;
 
-  return esn;
-}
-
-//' @export
-// [[Rcpp::export]]
-NumericVector resn2(int &n_, NumericVector &xi,
+NumericVector resn(int &n_, NumericVector &xi,
                     NumericVector &omega, NumericVector &alpha,
                     double &tau) {
+  RNGScope rngScope ;
   //double alph = Rcpp::as<double>(alpha) ;
   NumericVector delta = alpha / sqrt(1 + alpha * alpha) ;
   NumericVector lb(n_) ;
@@ -115,13 +86,5 @@ NumericVector resn2(int &n_, NumericVector &xi,
   return esn;
 }
 
-// [[Rcpp::export]]
-NumericVector testfn(NumericVector x){
-  int N_ = x.size() ;
-  NumericVector ps(N_) ;
-  for (int i = 0; i < N_; i++){
-    ps[i] = arf::cdfn(x[i], 0, 1) ;
-  }
-  return ps ;
-}
+
 
