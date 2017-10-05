@@ -1,132 +1,192 @@
-#Helpful R functions called from the "main" file
+#Helpful internal R functions called from the "main" file
 
-#Code for small silent functions used in the data manipulation
 
-#Function that makes a single groupID from the first 4 rows of df
+#Function that makes a single groupID from the first 2 rows of df
 makeHeader <- function(df, index){
 
-  header <- paste("lr", colnames(df)[index], df[1, index],
-                  df[2, index], df[3, index], sep = "qqqq")
+  header <- paste(colnames(df)[index], df[1, index],
+                  df[2, index],  sep = "qqqq")
   header
 }
 
 #function that takes a dataframe and returns a dataframe with unique ids
-transformDat <- function(df, plexNumber, normalize){
+transformDat <- function(df){
+  print("Transforming data")
   #convert factors to strings
   facIndex <- which(sapply(df, is.factor))
   df[facIndex] <- lapply(df[facIndex], as.character)
 
-  #Zero out unused columns
-  bioCol <- df$bioID[1]
-  if(bioCol == 0){
-    df$bioID[] <- 0
-  }
-
-  covarCol <- df$Covariate[1]
-  if(covarCol == 0){
-    df$Covariate[] <- 0
-  }
-  varCol <- df$varCat[1]
-  if(varCol == 0){
-    df$varCat[] <- 0
-  }
-
-
+  #Zero out unused rows
   if(df[2, 1] == 0){
     df[2, ][] <- 0
-  }
-  if(df[3, 1] == 0){
-    df[3, ][] <- 0
   }
 
   n_ <- nrow(df)
 
-  jDat <- df[4:(n_), ]
-  df[4:n_, ] <- jDat[order(jDat$bioID), ]
+  jDat <- df[3:(n_), ]
+  df[3:n_, ] <- jDat[order(jDat$Protein, jDat$Peptide), ]
 
-  value_index <- grep("tag", colnames(df))
+  value_index <- grep("Run", colnames(df))
 
-  nMat <- df[4:(n_), value_index]
-  #normalize the df by bioRep
-  if(normalize == TRUE){
-    normed <- by(as.matrix(df[4:(n_), value_index]), df$bioID[4:n_], cNorm)
-    nMat <- as.matrix(do.call(cbind, normed))
-  }
+  nMat <- df[3:(n_), value_index]
+  lMat <- log2(nMat)
 
-  condBio <- paste(df[1, value_index],
-                   as.integer(df[2, 1])*df[2, value_index])
-  ref_index <- which(condBio == condBio[1])
-  normal_index <- setdiff(1:length(value_index), ref_index)
+  header <- makeHeader(df[ , value_index])
+  colnames(lMat) <- header
 
-  lRes <- logRatio(nMat, ref_index)
-  lrMat <- lRes[[1]]
-  minTensities <- lRes[[2]]
-  header <- makeHeader(df[ , value_index], normal_index)
-  colnames(lrMat) <- header
+  newDf1 <- data.frame(Protein = df[3:n_, ]$Protein,
+                       Peptide = df[3:n_, ]$Peptide,                                                    lMat, stringsAsFactors = F)
 
-  newDf1 <- data.frame(Protein = df[4:n_, ]$Protein,
-                       Peptide = df[4:n_, ]$Peptide,                                                  bioID = df[4:n_, ]$bioID,
-                       Covariate = df[4:n_, ]$Covariate,
-                       varCat = df[4:n_, ]$varCat,
-                       lrMat, stringsAsFactors = F)
+  melted <- reshape2::melt(newDf1, id.vars = c("Protein", "Peptide"),
+                            value.name = "lintensity", variable.name = "header")
 
-  newDf2 <- data.frame(Protein = df[4:n_, ]$Protein,
-                       Peptide = df[4:n_, ]$Peptide,                                                  bioID = df[4:n_, ]$bioID,
-                       Covariate = df[4:n_, ]$Covariate,
-                       varCat = df[4:n_, ]$varCat,
-                       minTensities, stringsAsFactors = F)
-
-  melted1 <- reshape2::melt(newDf1, id.vars = c("Protein", "Peptide", "bioID",
-                                                "Covariate", "varCat"),
-                            value.name = "lr", variable.name = "header")
-
-
-  melted2 <- reshape2::melt(newDf2, id.vars = c("Protein", "Peptide", "bioID",
-                                                "Covariate", "varCat"),
-                            value.name = "pairMin", variable.name = "header")
-
-
-  melted <- data.frame(melted1, pairMin = melted2$pairMin)
-
-  separated <- stringr::str_split_fixed(as.character(melted$header), "qqqq",5)
-
-  #Merge tag with tenplex info
-
-  tag_plex <- paste(separated[ , 2], melted$bioID, plexNumber, sep = "_")
+  separated <- stringr::str_split_fixed(as.character(melted1$header), "qqqq",3)
 
   #figure out if we are using a bioid from the header or from a column
 
-  if(bioCol == 1){
-    bioID <- paste(melted$Protein, separated[ , 3], melted$bioID,  sep = "_")
-  }else{bioID <- paste(melted$Protein, separated[ , 3], separated[, 4])}
+  finalDat <- data.frame(protein = melted$Protein, peptide = melted$Peptide,
+                         condID = separated[, 2],
+                         bioID = paste(melted$Protein,
+                                       separated[, 3], sep = "_"),
+                         lintensity = melted$lintensity, stringsAsFactors = F)
 
-  finalDat <- data.frame(protein = melted$Protein,
-                         condID = paste(melted$Protein, separated[, 3],
-                                        sep = "_"), bioID,
-                         ptmID = paste(melted$Protein, separated[, 3],
-                                       melted$Peptide, separated[ , 5],
-                                       sep = "_"),
-                         ptm = separated[ , 5], tag_plex,
-                         covariate = melted$Covariate,
-                         varCat = melted$varCat,
-                         pairMin = melted$pairMin,
-                         lr = melted$lr, stringsAsFactors = F)
-  finalDat <- finalDat[order(finalDat$tag_plex, finalDat$condID,
-                             finalDat$bioID, finalDat$ptm, finalDat$ptmID), ]
-
-  #do normalization at a previous step
-  #normalize the non-ptm data by tag
-
-  #normed <- unlist(by(melted[finalDat$ptm == 0, ]$lr,
-  #              finalDat[finalDat$ptm == 0, ]$tag_plex, function(x)
-  #               x - mean(x)))
-  #melted$lr[finalDat$ptm == 0] <- normed
-  #finalDat$lr <- melted$lr
-
+  finalDat <- finalDat[order(finalDat$bioID, finalDat$peptide,
+                             finalDat$condID), ]
 
   finalDat
 }#end function transformDat
 
+#function for setting up the data structure and initializing the sampler
+prepare <- function(df, ndraws, pop){
+  print("Initializing Gibbs Sampler")
+
+  #set missing parameters
+  missIndex <- which(is.na(df$lintensity))
+  missPointer <- rep(0, nrow(df))
+  missPointer[missIndex] <- 1:length(missIndex)
+
+  y_miss <- matrix(NA, nrow = length(missIndex), ncol = ndraws)
+  miss_a <- rep(NA, ndraws)
+  miss_b <- rep(NA, ndraws)
+  r_obs <- 1 * (!(is.na(df$lintensity)))
+  #make initial guesses
+  x0 <- min(df$lintensity[r_obs == 1])
+  x100 <- max(df$lintensity[r_obs == 1])
+  miss_b[1] <- (qnorm(.8) - qnorm(.01)) / (x100 - x0)
+  miss_a[1] <- qnorm(.01) - miss_b[1] * x0
+  y_miss[ , 1] <- x0
+
+  #create list of design matrices
+  if(pop == FALSE){
+    matList <- by(df, df$protein, FUN = makeX)
+  }else{
+    matList <- by(df, df$bioID, FUN = makeX)
+  }
+
+  n_prot <- length(matList)
+  n_parList <- lapply(matList, ncol)
+  n_pars <- do.call(sum, n_parList)
+  n_cond <- length(unique(df$condID))
+  n_pep <- n_pars - (n_cond * n_prot)
+
+  #generate parameter matrices
+  intercepts <- matrix(NA, nrow = n_prot, ncol = ndraws)
+  fcs <- matrix(NA, nrow = n_prot * (n_cond - 1), ncol = ndraws)
+  peps <- matrix(NA, nrow = n_pep, ncol = ndraws)
+
+  #create a way to map between submatrix calculations and parmater arrays
+  #pointer matrix has two columns.  The first represents the type of mean
+  #parameter (1=intercept, 2=protein fold-change, 3=peptide effect).
+  #The second column determines the position in the respective array.
+  pointers <- list()
+  int_i <- fc_i <- pep_i <- 0
+  for(i in 1:n_prot){
+    pointMat <- matrix(0, nrow = n_parList[[i]], ncol = 2)
+    for(j in 1:n_parList[[i]]){
+      if(j == 1){
+        int_i <- int_i + 1
+        pointMat[j, ] <- c(1, int_i)
+      }
+      if((j > 1) & (j <= n_cond)){
+        fc_i <- fc_i + 1
+        pointMat[j, ] <- c(2, fc_i)
+      }
+      if(j > n_cond){
+        pep_i <- pep_i + 1
+        pointMat[j, ] <- c(3, pep_i)
+      }
+    }
+    pointers[[i]] <- pointMat
+  }
+
+  #now put the outcomes into list form
+  if(pop == FALSE){
+    y_list <- by(data.frame(df$lintensity, missPointer),
+                 df$protein, function(x) x)
+  }else{
+    y_list <- by(data.frame(df$lintensity, missPointer),
+                 df$bioID, function(x) x)
+  }
+
+  #generate initial mean parameters
+  invisible(lapply(1:n_prot, function(x)
+    ols_init(y_list[[x]], matList[[x]], pointers[[x]])))
+
+  #Now do the variance components
+  #generate parameter matrices
+  sigma <- matrix(NA, nrow = 1, ncol = ndraws)
+  tau_int <- matrix(NA, nrow = 1, ncol = ndraws)
+  tau_fc <- matrix(NA, nrow = 1, ncol = ndraws)
+  tau_pep <- matrix(NA, nrow = 1, ncol = ndraws)
+
+  sigma[1 , 1] <- .3
+  tau_int[1 , 1] <- 2
+  tau_fc[1 , 1] <- 1
+  tau_pep[1 , 1] <- 1
+
+  #create higher level for population studies
+  if(pop == FALSE){pop_mu <- NULL}else{
+    pop_mu <- NULL # Work on this later
+  }
+
+  list(y_list, y_miss, r_obs, matList, pointers,
+       intercepts, fcs, peps, miss_a, miss_a,
+       sigma, tau_int, tau_fc, tau_pep, pop_mu)
+} #end of prepare function
+
+
+#function for computing intial parameter estimates
+ols_init <- function(y_, X_, pointers){
+  #y_ = outcomes and pointers to missing data, X_ = design matrix,
+  #pointers = matrix of what rows to assign parameters at the end
+  vec <- rep(0, nrow(y_))
+  vec[is.na(y_[ , 1])] <- y_miss[y_[ , 2], 1]
+  vec[!(is.na(y_[ , 1]))] <- y_[!(is.na(y_[ , 1])), 1]
+
+  beta <- solve(t(X_) %*% X_) %*% t(X_) %*% vec
+
+  intercepts[pointers[1, 2], 1] <<- beta[1]
+  index <- which(pointers[ , 1] == 2)
+  fcs[pointers[index , 2], 1] <<- beta[index]
+  index <- which(pointers[ , 1] == 3)
+  peps[pointers[index , 2], 1] <<- beta[index]
+
+  NULL
+}
+
+#function for creating design matrices
+makeX <- function(df){
+  multiPep <- (length(unique(df$peptide)) > 1)
+    if(multiPep){
+      mat <- model.matrix(~ factor(condID) + factor(peptide), df)
+    }else{
+      mat <- model.matrix(~ factor(condID), df)
+    }
+}
+
+
+
+#Maybe need the below, not sure yet
 #function for extracting the condition number from labels
 getCond <- function(strVec, ptm = FALSE){
   sPosition <- regexpr("_", strVec)
@@ -146,62 +206,7 @@ strReverse <- function(x){
   sapply(lapply(strsplit(x, NULL), rev), paste, collapse="")
 }
 
-#closure function
-cl <- function(vec){
-  vec/sum(vec)
-}
-
-#centered log ratio
-clr <- function(vec){
-  gm <- exp(mean(log(vec)))
-  log(vec/gm)
-}
-
-clrInv <- function(vec){
-  cl(exp(vec))
-}
-
-#Function to normalize the data
-
-cNorm <- function(mat, subIndex = NULL){
-  #takes a compostion matrix and subracts out the mean
-  mat[mat < 1] <- 1
-  clrMat <- t(apply(mat, 1, clr))
-
-  if(is.null(subIndex)){
-    cMean <- clrInv(apply(clrMat, 2, mean))
-  }else{
-    cMean <- clrInv(apply(clrMat[subIndex, ], 2, mean))
-  }
-
-  normed <- t(apply(mat, 1, function(x) cl(x/cMean)))
-  normed
-}
 
 
-#Function to prepare data for an ANOVA.
 
-anovaPrep <- function(df){
-  #Zero out unused column
-  bioCol <- df$bioID[1]
-  if(bioCol == 0){
-    df$bioID[] <- 0
-  }
-  n_ <- nrow(df)
-
-  jDat <- df[4:(n_), ]
-  df[4:n_, ] <- jDat[order(jDat$bioID), ]
-
-  value_index <- grep("tag", colnames(df))
-
-  header <- makeHeader(df[ , value_index], normal_index)
-  colnames(lrMat) <- header
-
-  newDf1 <- data.frame(Protein = df[4:n_, ]$Protein,
-                       Peptide = df[4:n_, ]$Peptide,                                                  bioID = df[4:n_, ]$bioID,
-                       Covariate = df[4:n_, ]$Covariate,
-                       varCat = df[4:n_, ]$varCat,
-                       lrMat, stringsAsFactors = F)
-
-}
 
