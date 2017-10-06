@@ -1,16 +1,13 @@
 #include <RcppArmadillo.h>
-#include <iostream>
 using namespace Rcpp;
 
-// Armadillo functions used to run a fast Gibbs sampler.
-//
-//
-
-
 // [[Rcpp::depends(RcppArmadillo)]]
+// Armadillo functions used to run a fast Gibbs sampler.
+
 
 namespace arf{
 
+// Approximate the error function (used in the cdf of a normal)
   double erf(double x){
     if(x >= 0){
     double y = 1.0 / (1.0 + 0.3275911 * x) ;
@@ -21,9 +18,7 @@ namespace arf{
       - 0.284496736) * y
       + 0.254829592) * y)
       * exp(-x * x) ;
-    }
-
-    if(x < 0){
+    }else{
       double z = -1 * x ;
       double y = 1.0 / (1.0 + 0.3275911 * z) ;
       return -1 * (1 - (((((
@@ -34,41 +29,31 @@ namespace arf{
                        + 0.254829592) * y)
                        * exp(-z * z) ) ;
     }
-  }
+  } // End erf()
 
+//fast computation of the cdf of a normal(mu, sigma)
   double cdfn(double x, double mu, double sigma){
     return 0.5 * (1 + arf::erf((x - mu) / (sigma * sqrt(2.0)))) ;
-  }
+  } //End cdfn
 
+//Generate uniform(0,1) variate
 NumericVector runifArm(int n_) {
   arma::vec unis = arma::randu(n_) ;
 
   return wrap(unis) ;
 }
 
+// Generate random normal(0,1) variate
 NumericVector rnormArm(int n_) {
   arma::vec norms = arma::randn(n_) ;
 
   return wrap(norms) ;
 }
 
-} // end arf namespace
-
-
-//' Generate a random number from an extended skew normal distribution
-//'
-//' @param n_ The number of random variates to create
-//' @param xi esn parameter
-//' @param omega esn parameter
-//' @param alpha esn parameter
-//' @param tau esn parameter
-//'
-//' @export
-// [[Rcpp::export]]
-
+// Generate a random number from an extended skew normal distribution
 NumericVector resn(int &n_, NumericVector &xi,
-                    NumericVector &omega, NumericVector &alpha,
-                    double &tau) {
+                   NumericVector &omega, NumericVector &alpha,
+                   double &tau) {
   RNGScope rngScope ;
   //double alph = Rcpp::as<double>(alpha) ;
   NumericVector delta = alpha / sqrt(1 + alpha * alpha) ;
@@ -87,4 +72,30 @@ NumericVector resn(int &n_, NumericVector &xi,
 }
 
 
+
+} // end arf namespace
+
+
+
+
+// Run a custom Gibbs sampler for the SMP model
+// [[Rcpp::export()]]
+void gibbsCpp(List y_list,
+              arma::mat y_miss,
+              arma::mat r_obs,
+              List matList,
+              List pointers,
+              arma::mat intercepts,
+              arma::mat fcs,
+              arma::mat peps,
+              arma::mat miss_a,
+              arma::mat miss_b,
+              arma::mat sigma,
+              arma::mat tau_int,
+              arma::mat tau_fc,
+              arma::mat tau_pep){
+
+  Rcpp::Rcout << y_miss(4, 0) << std::endl  ;
+
+}
 

@@ -6,19 +6,27 @@
 
 using namespace Rcpp;
 
-// resn
-NumericVector resn(int& n_, NumericVector& xi, NumericVector& omega, NumericVector& alpha, double& tau);
-RcppExport SEXP _missMS_resn(SEXP n_SEXP, SEXP xiSEXP, SEXP omegaSEXP, SEXP alphaSEXP, SEXP tauSEXP) {
+// gibbsCpp
+void gibbsCpp(List y_list, arma::mat y_miss, arma::mat r_obs, List matList, List pointers, arma::mat intercepts, arma::mat fcs, arma::mat peps, arma::mat miss_a, arma::mat miss_b, arma::mat sigma, arma::mat tau_int, arma::mat tau_fc, arma::mat tau_pep);
+RcppExport SEXP _missMS_gibbsCpp(SEXP y_listSEXP, SEXP y_missSEXP, SEXP r_obsSEXP, SEXP matListSEXP, SEXP pointersSEXP, SEXP interceptsSEXP, SEXP fcsSEXP, SEXP pepsSEXP, SEXP miss_aSEXP, SEXP miss_bSEXP, SEXP sigmaSEXP, SEXP tau_intSEXP, SEXP tau_fcSEXP, SEXP tau_pepSEXP) {
 BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< int& >::type n_(n_SEXP);
-    Rcpp::traits::input_parameter< NumericVector& >::type xi(xiSEXP);
-    Rcpp::traits::input_parameter< NumericVector& >::type omega(omegaSEXP);
-    Rcpp::traits::input_parameter< NumericVector& >::type alpha(alphaSEXP);
-    Rcpp::traits::input_parameter< double& >::type tau(tauSEXP);
-    rcpp_result_gen = Rcpp::wrap(resn(n_, xi, omega, alpha, tau));
-    return rcpp_result_gen;
+    Rcpp::traits::input_parameter< List >::type y_list(y_listSEXP);
+    Rcpp::traits::input_parameter< arma::mat >::type y_miss(y_missSEXP);
+    Rcpp::traits::input_parameter< arma::mat >::type r_obs(r_obsSEXP);
+    Rcpp::traits::input_parameter< List >::type matList(matListSEXP);
+    Rcpp::traits::input_parameter< List >::type pointers(pointersSEXP);
+    Rcpp::traits::input_parameter< arma::mat >::type intercepts(interceptsSEXP);
+    Rcpp::traits::input_parameter< arma::mat >::type fcs(fcsSEXP);
+    Rcpp::traits::input_parameter< arma::mat >::type peps(pepsSEXP);
+    Rcpp::traits::input_parameter< arma::mat >::type miss_a(miss_aSEXP);
+    Rcpp::traits::input_parameter< arma::mat >::type miss_b(miss_bSEXP);
+    Rcpp::traits::input_parameter< arma::mat >::type sigma(sigmaSEXP);
+    Rcpp::traits::input_parameter< arma::mat >::type tau_int(tau_intSEXP);
+    Rcpp::traits::input_parameter< arma::mat >::type tau_fc(tau_fcSEXP);
+    Rcpp::traits::input_parameter< arma::mat >::type tau_pep(tau_pepSEXP);
+    gibbsCpp(y_list, y_miss, r_obs, matList, pointers, intercepts, fcs, peps, miss_a, miss_b, sigma, tau_int, tau_fc, tau_pep);
+    return R_NilValue;
 END_RCPP
 }
 // rnormCpp
@@ -34,7 +42,7 @@ END_RCPP
 }
 
 static const R_CallMethodDef CallEntries[] = {
-    {"_missMS_resn", (DL_FUNC) &_missMS_resn, 5},
+    {"_missMS_gibbsCpp", (DL_FUNC) &_missMS_gibbsCpp, 14},
     {"_missMS_rnormCpp", (DL_FUNC) &_missMS_rnormCpp, 1},
     {NULL, NULL, 0}
 };

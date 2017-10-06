@@ -40,7 +40,7 @@ transformDat <- function(df){
   melted <- reshape2::melt(newDf1, id.vars = c("Protein", "Peptide"),
                             value.name = "lintensity", variable.name = "header")
 
-  separated <- stringr::str_split_fixed(as.character(melted1$header), "qqqq",3)
+  separated <- stringr::str_split_fixed(as.character(melted$header), "qqqq",3)
 
   #figure out if we are using a bioid from the header or from a column
 
@@ -54,20 +54,21 @@ transformDat <- function(df){
                              finalDat$condID), ]
 
   finalDat
-}#end function transformDat
+}#end transformDat()
+
 
 #function for setting up the data structure and initializing the sampler
 prepare <- function(df, ndraws, pop){
-  print("Initializing Gibbs Sampler")
+  print("Creating parameter matrices")
 
   #set missing parameters
   missIndex <- which(is.na(df$lintensity))
   missPointer <- rep(0, nrow(df))
   missPointer[missIndex] <- 1:length(missIndex)
 
-  y_miss <- matrix(NA, nrow = length(missIndex), ncol = ndraws)
-  miss_a <- rep(NA, ndraws)
-  miss_b <- rep(NA, ndraws)
+  y_miss <- matrix(0, nrow = length(missIndex), ncol = ndraws)
+  miss_a <- rep(0, ndraws)
+  miss_b <- rep(0, ndraws)
   r_obs <- 1 * (!(is.na(df$lintensity)))
   #make initial guesses
   x0 <- min(df$lintensity[r_obs == 1])
@@ -90,9 +91,9 @@ prepare <- function(df, ndraws, pop){
   n_pep <- n_pars - (n_cond * n_prot)
 
   #generate parameter matrices
-  intercepts <- matrix(NA, nrow = n_prot, ncol = ndraws)
-  fcs <- matrix(NA, nrow = n_prot * (n_cond - 1), ncol = ndraws)
-  peps <- matrix(NA, nrow = n_pep, ncol = ndraws)
+  intercepts <- matrix(0, nrow = n_prot, ncol = ndraws)
+  fcs <- matrix(0, nrow = n_prot * (n_cond - 1), ncol = ndraws)
+  peps <- matrix(0, nrow = n_pep, ncol = ndraws)
 
   #create a way to map between submatrix calculations and parmater arrays
   #pointer matrix has two columns.  The first represents the type of mean
@@ -128,16 +129,40 @@ prepare <- function(df, ndraws, pop){
                  df$bioID, function(x) x)
   }
 
+  #closure function for computing intial parameter estimates
+  ols_init <- function(y_, X_, pointers){
+    vec <- rep(0, nrow(y_))
+    vec[is.na(y_[ , 1])] <- y_miss[y_[ , 2], 1]
+    vec[!(is.na(y_[ , 1]))] <- y_[!(is.na(y_[ , 1])), 1]
+
+    beta <- solve(t(X_) %*% X_) %*% t(X_) %*% vec
+
+    intercepts[pointers[1, 2], 1] <- beta[1]
+    index <- which(pointers[ , 1] == 2)
+    fcs[pointers[index , 2], 1] <<- beta[index]
+    index <- which(pointers[ , 1] == 3)
+    peps[pointers[index , 2], 1] <<- beta[index]
+
+    piter <- get("x", parent.frame())
+    if(piter == 500){print("500 proteins initialized")}
+    if(piter == 1000){print("1000 proteins initialized")}
+    if(piter == 2500){print("2500 proteins initialized")}
+    if(piter == 5000){print("5000 proteins initialized")}
+
+    NULL
+  } #end ols_init()
+
   #generate initial mean parameters
+  print("Computing inital parameter values")
   invisible(lapply(1:n_prot, function(x)
     ols_init(y_list[[x]], matList[[x]], pointers[[x]])))
-
+  print("done with OLS")
   #Now do the variance components
   #generate parameter matrices
-  sigma <- matrix(NA, nrow = 1, ncol = ndraws)
-  tau_int <- matrix(NA, nrow = 1, ncol = ndraws)
-  tau_fc <- matrix(NA, nrow = 1, ncol = ndraws)
-  tau_pep <- matrix(NA, nrow = 1, ncol = ndraws)
+  sigma <- matrix(0, nrow = 1, ncol = ndraws)
+  tau_int <- matrix(0, nrow = 1, ncol = ndraws)
+  tau_fc <- matrix(0, nrow = 1, ncol = ndraws)
+  tau_pep <- matrix(0, nrow = 1, ncol = ndraws)
 
   sigma[1 , 1] <- .3
   tau_int[1 , 1] <- 2
@@ -150,29 +175,11 @@ prepare <- function(df, ndraws, pop){
   }
 
   list(y_list, y_miss, r_obs, matList, pointers,
-       intercepts, fcs, peps, miss_a, miss_a,
+       intercepts, fcs, peps, miss_a, miss_b,
        sigma, tau_int, tau_fc, tau_pep, pop_mu)
-} #end of prepare function
+} #end prepare()
 
 
-#function for computing intial parameter estimates
-ols_init <- function(y_, X_, pointers){
-  #y_ = outcomes and pointers to missing data, X_ = design matrix,
-  #pointers = matrix of what rows to assign parameters at the end
-  vec <- rep(0, nrow(y_))
-  vec[is.na(y_[ , 1])] <- y_miss[y_[ , 2], 1]
-  vec[!(is.na(y_[ , 1]))] <- y_[!(is.na(y_[ , 1])), 1]
-
-  beta <- solve(t(X_) %*% X_) %*% t(X_) %*% vec
-
-  intercepts[pointers[1, 2], 1] <<- beta[1]
-  index <- which(pointers[ , 1] == 2)
-  fcs[pointers[index , 2], 1] <<- beta[index]
-  index <- which(pointers[ , 1] == 3)
-  peps[pointers[index , 2], 1] <<- beta[index]
-
-  NULL
-}
 
 #function for creating design matrices
 makeX <- function(df){
@@ -182,7 +189,7 @@ makeX <- function(df){
     }else{
       mat <- model.matrix(~ factor(condID), df)
     }
-}
+} #end makeX()
 
 
 
