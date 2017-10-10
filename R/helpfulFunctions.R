@@ -123,17 +123,21 @@ prepare <- function(df, ndraws, pop){
   #now put the outcomes into list form
   if(pop == FALSE){
     y_list <- by(data.frame(df$lintensity, missPointer),
-                 df$protein, function(x) x)
+                 df$protein, function(x) {
+                   x[is.na(x[ , 1]), 1] <- 0
+                   return(as.matrix(x))})
   }else{
     y_list <- by(data.frame(df$lintensity, missPointer),
-                 df$bioID, function(x) x)
+                 df$bioID, function(x) {
+                   x[is.na(x[ , 1]), 1] <- 0
+                   return(as.matrix(x))})
   }
 
   #closure function for computing intial parameter estimates
   ols_init <- function(y_, X_, pointers){
     vec <- rep(0, nrow(y_))
-    vec[is.na(y_[ , 1])] <- y_miss[y_[ , 2], 1]
-    vec[!(is.na(y_[ , 1]))] <- y_[!(is.na(y_[ , 1])), 1]
+    vec[y_[ , 1] == 0] <- y_miss[y_[ , 2], 1]
+    vec[y_[ , 1] != 0] <- y_[which(y_[ , 1] != 0), 1]
 
     beta <- solve(t(X_) %*% X_) %*% t(X_) %*% vec
 

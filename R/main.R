@@ -27,7 +27,7 @@ smp <- function(dat, nCores = 1, ndraws = 2000){
   #sigma, tau_int, tau_fc, tau_pep, pop_mu
 
   #call the C++ Gibbs Sampler
-  gibbsCpp(initList[[1]],
+  testRes <- gibbsCpp(initList[[1]],
            as.matrix(initList[[2]]),
            as.matrix(initList[[3]]),
            initList[[4]],
@@ -42,18 +42,5 @@ smp <- function(dat, nCores = 1, ndraws = 2000){
            as.matrix(initList[[13]]),
            as.matrix(initList[[14]]))
 
-   for (i in 1:length(initList)){
-   print(typeof(initList[[i]]))
- }
 
-  # RES <- list()
-  # RES[[1]] <- resDf
-  # RES[[2]] <- ptmDf
-  # if(resultsOnly){
-  #   RES[[3]] <- NULL
-  # }else{
-  #   RES[[3]] <- model
-  # }
-  #
-  # RES
 } #end of smp function
