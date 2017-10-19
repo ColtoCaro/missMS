@@ -85,7 +85,7 @@ double sampN(const double sumDiff, const double tau, const double beta,
 }
 
 // Function to update missing values and mean parameters
-void updateBlock(int index, int iter, NumericMatrix yMat_,
+arma::vec updateBlock(int index, int iter, NumericMatrix yMat_,
                  arma::mat &yMiss,
                  NumericMatrix xMat_, NumericMatrix pointers,
                  arma::mat &intercepts, arma::mat &fcs,
@@ -117,6 +117,7 @@ void updateBlock(int index, int iter, NumericMatrix yMat_,
   double alpha = -1 * miss_b * omega ;
 
   //get outcome vector
+ // Rcout << "before " << yMat << " theta = " << theta << std::endl ;
   int nObs = yMat.n_rows ;
   arma::vec y_(nObs); y_.zeros() ;
   for(int j = 0; j < nObs; j++){
@@ -131,7 +132,7 @@ void updateBlock(int index, int iter, NumericMatrix yMat_,
       y_(j) = yMat(j, 0) ;
     }
   }
-
+//  Rcout << "after " << y_ << " theta = " << theta << std::endl ;
   //Now update the mean parameters
   arma::mat xxi(size(xMat)) ; xxi.zeros() ;
   arma::mat groupYs(nObs, nPars) ; groupYs.zeros() ;
@@ -149,23 +150,52 @@ void updateBlock(int index, int iter, NumericMatrix yMat_,
   arma::rowvec sumDiff = sum(newMat) ;
   arma::rowvec nYs = sum(xMat) ;
 
+  arma::vec theta2(nPars) ; theta2.zeros() ;
   for(int p = 0; p < nPars; p++){
     if(pointers(p, 0) == 1){
       double newInt = sampN(sumDiff(p), tau_int, 0, sigma, nYs(p)) ;
       intercepts(pointers(p, 1) - 1, iter + 1) = newInt ;
+      theta2(p) = newInt ;
     }else{
       if(pointers(p, 0) == 2){
         double newFc = sampN(sumDiff(p), tau_fc, 0, sigma, nYs(p)) ;
         fcs(pointers(p, 1) - 1, iter + 1) = newFc ;
+        theta2(p) = newFc ;
       }else{
         double newPep = sampN(sumDiff(p), tau_pep, 0, sigma, nYs(p)) ;
         peps(pointers(p, 1) - 1, iter + 1) = newPep ;
+        theta2(p) = newPep ;
       }
     }
   }
 
-  return ;
+  arma::vec resid = y_ - xMat * theta2 ;
+  return (resid);
   } // end updateBlock
+
+double sampV(arma::vec parVec, double hyp, double parMean){
+  int nPars = parVec.size() ;
+  double postShape = hyp + nPars / 2 ;
+  arma::vec meanVec(nPars) ; meanVec.fill(parMean) ;
+  double postScale = 1 / (hyp + sum(square(parVec - parMean)) / 2 ) ;
+
+  Rcout << "gamma mean = " << postShape * postScale  <<
+    " gamma Var = " << postShape * postScale * postScale << std::endl;
+  double newGamma = rgamma(1, postShape, postScale)(0) ;
+
+  return(1 / newGamma) ;
+}
+
+double sampMu(arma::vec parVec, double hypVar, double parVar){
+  int nPars = parVec.size() ;
+  double postMean = (sum(parVec) / parVar) / ((1 / hypVar) + (nPars / parVar));
+  double postVar = 1 / ((1 / hypVar) + (nPars / parVar)) ;
+
+  double newMean = rnorm(1, postMean, sqrt(postVar))(0) ;
+
+  return(newMean) ;
+}
+
 
 } // end arf namespace
 
@@ -182,12 +212,15 @@ List gibbsCpp(List y_list,
               NumericMatrix intercepts_,
               NumericMatrix fcs_,
               NumericMatrix peps_,
+              NumericMatrix int_mu_,
               NumericMatrix miss_a_,
               NumericMatrix miss_b_,
               NumericMatrix sigma_,
               NumericMatrix tau_int_,
               NumericMatrix tau_fc_,
-              NumericMatrix tau_pep_){
+              NumericMatrix tau_pep_,
+              NumericMatrix yVec_,
+              Function rProbit){
 
   int n_prot = matList.size() ;
   //convert to armadillo objects
@@ -197,31 +230,74 @@ List gibbsCpp(List y_list,
                        intercepts_.ncol(), false) ;
   arma::mat fcs(fcs_.begin(), fcs_.nrow(), fcs_.ncol(), false) ;
   arma::mat peps(peps_.begin(), peps_.nrow(), peps_.ncol(), false) ;
+  arma::mat int_mu(int_mu_.begin(), int_mu_.nrow(), int_mu_.ncol(), false) ;
   arma::mat miss_a(miss_a_.begin(), miss_a_.nrow(), miss_a_.ncol(), false) ;
   arma::mat miss_b(miss_b_.begin(), miss_b_.nrow(), miss_b_.ncol(), false) ;
   arma::mat sigma(sigma_.begin(), sigma_.nrow(), sigma_.ncol(), false) ;
   arma::mat tau_int(tau_int_.begin(), tau_int_.nrow(), tau_int_.ncol(), false) ;
   arma::mat tau_fc(tau_fc_.begin(), tau_fc_.nrow(), tau_fc_.ncol(), false) ;
   arma::mat tau_pep(tau_pep_.begin(), tau_pep_.nrow(), tau_pep_.ncol(), false) ;
+  arma::mat yVec(yVec_.begin(), yVec_.nrow(), yVec_.ncol(), false) ;
+
+  //Set missing index before imputing the missing values
+  arma::uvec missIndex = find(yVec == 0) ;
 
   //update missing values and mean parameters
-  for(int prot = 0; prot < n_prot; prot++){
-  NumericMatrix y1 = y_list[prot] ;
-  NumericMatrix mat1 = matList[prot] ;
-  NumericMatrix point1 = pointers[prot] ;
-  arf::updateBlock(prot, 0, y1, y_miss,
-                               mat1, point1,
-                               intercepts, fcs,
-                               peps, miss_a(0),
-                               miss_b(0), sigma(0),
-                               tau_int(0), tau_fc(0),
-                               tau_pep(0)) ;
+  for(int iter = 0; iter < (tau_pep.n_cols - 1) ; iter++){  // (tau_pep.n_cols - 1)
+    arma::vec resids(r_obs.size()) ; resids.zeros() ;
+    int residCount = 0 ;
+    for(int prot = 0; prot < n_prot; prot++){  //
+      NumericMatrix y1 = y_list[prot] ;
+      NumericMatrix mat1 = matList[prot] ;
+      NumericMatrix point1 = pointers[prot] ;
+      arma::vec tempResid = arf::updateBlock(prot, iter, y1, y_miss,
+                                 mat1, point1,
+                                 intercepts, fcs,
+                                 peps, miss_a(iter),
+                                 miss_b(iter), sigma(iter),
+                                 tau_int(iter), tau_fc(iter),
+                                 tau_pep(iter)) ;
+      for(int resI = 0; resI < tempResid.size(); resI++){
+        resids(resI + residCount) = tempResid(resI) ;
+      }
+      residCount = residCount + tempResid.size() ;
 
 
-  } // end protein loop
+    } // end protein loop
+    Rcout << "Prot loop done "<< std::endl ;
+
+  //update variance components
+  tau_int(iter + 1) = arf::sampV(intercepts.col(iter + 1), .001, int_mu(iter)) ;
+
+
+  tau_fc(iter + 1) = arf::sampV(fcs.col(iter + 1), .001, 0) ;
+  tau_pep(iter + 1) = arf::sampV(peps.col(iter + 1), .001, 0) ;
+
+  sigma(iter + 1) = arf::sampV(resids, .001, 0) ;
+
+  Rcout << "VC's updated "<< std::endl ;
+  //update mean hyperparameters
+  int_mu(iter + 1) = arf::sampMu(intercepts.col(iter + 1),
+         10000, tau_int(iter + 1)) ;
+  Rcout << "check 1 "<< std::endl ;
+  //update missing data parameters
+  yVec.elem(missIndex) = y_miss.col(iter + 1) ;
+
+  Rcout << "check 2" << std::endl ;
+
+  NumericVector tempMiss = rProbit(r_obs, yVec) ;
+  Rcout << "check 3"<< std::endl ;
+  miss_a(iter + 1) = tempMiss(0) ;
+  miss_b(iter + 1) = tempMiss(1) ;
+
+  Rcout << "End iteration " << iter << std::endl ;
+  } //end iteration loop
 
   return List::create(Named("fcs") = fcs, Named("intercepts") = intercepts,
-                      Named("peps") = peps) ;
+                      Named("peps") = peps, Named("int_mu") = int_mu,
+                      Named("miss_a") = miss_a, Named("miss_b") = miss_b,
+                      Named("sigma") = sigma, Named("tau_int") = tau_int,
+                      Named("tau_fc") = tau_fc, Named("tau_pep") = tau_pep,
+                      Named("y_miss") = y_miss)  ;
 
-}
-
+} // End gibbsCpp

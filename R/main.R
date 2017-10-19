@@ -23,9 +23,11 @@ smp <- function(dat, nCores = 1, ndraws = 2000){
   readyDat <- transformDat(dat)
   initList <- prepare(readyDat, ndraws, pop) #function returns, in order:
   #y_list, y_miss, r_obs, matList, pointers,
-  #intercepts, fcs, peps, miss_a, miss_b,
+  #intercepts, fcs, peps, int_mu, miss_a, miss_b,
   #sigma, tau_int, tau_fc, tau_pep, pop_mu
 
+  yVec <- readyDat$lintensity
+  yVec[is.na(yVec)] <- 0
   #call the C++ Gibbs Sampler
   testRes <- gibbsCpp(initList[[1]],
            as.matrix(initList[[2]]),
@@ -40,7 +42,9 @@ smp <- function(dat, nCores = 1, ndraws = 2000){
            as.matrix(initList[[11]]),
            as.matrix(initList[[12]]),
            as.matrix(initList[[13]]),
-           as.matrix(initList[[14]]))
+           as.matrix(initList[[14]]),
+           as.matrix(initList[[15]]),
+           as.matrix(yVec), rProbit)
 
 
 } #end of smp function

@@ -75,7 +75,8 @@ prepare <- function(df, ndraws, pop){
   x100 <- max(df$lintensity[r_obs == 1])
   miss_b[1] <- (qnorm(.8) - qnorm(.01)) / (x100 - x0)
   miss_a[1] <- qnorm(.01) - miss_b[1] * x0
-  y_miss[ , 1] <- x0
+  #make initial guess for missing values.  Don't want complete separation!
+  y_miss[ , 1] <- mean(df$lintensity[r_obs == 1])
 
   #create list of design matrices
   if(pop == FALSE){
@@ -94,6 +95,7 @@ prepare <- function(df, ndraws, pop){
   intercepts <- matrix(0, nrow = n_prot, ncol = ndraws)
   fcs <- matrix(0, nrow = n_prot * (n_cond - 1), ncol = ndraws)
   peps <- matrix(0, nrow = n_pep, ncol = ndraws)
+  int_mu <- matrix(0, nrow = 1, ncol = ndraws)
 
   #create a way to map between submatrix calculations and parmater arrays
   #pointer matrix has two columns.  The first represents the type of mean
@@ -141,7 +143,7 @@ prepare <- function(df, ndraws, pop){
 
     beta <- solve(t(X_) %*% X_) %*% t(X_) %*% vec
 
-    intercepts[pointers[1, 2], 1] <- beta[1]
+    intercepts[pointers[1, 2], 1] <<- beta[1]
     index <- which(pointers[ , 1] == 2)
     fcs[pointers[index , 2], 1] <<- beta[index]
     index <- which(pointers[ , 1] == 3)
@@ -161,6 +163,10 @@ prepare <- function(df, ndraws, pop){
   invisible(lapply(1:n_prot, function(x)
     ols_init(y_list[[x]], matList[[x]], pointers[[x]])))
   print("done with OLS")
+
+  #set intercept hyper mean
+  int_mu[1] <- mean(intercepts[ , 1])
+
   #Now do the variance components
   #generate parameter matrices
   sigma <- matrix(0, nrow = 1, ncol = ndraws)
@@ -179,7 +185,7 @@ prepare <- function(df, ndraws, pop){
   }
 
   list(y_list, y_miss, r_obs, matList, pointers,
-       intercepts, fcs, peps, miss_a, miss_b,
+       intercepts, fcs, peps, int_mu, miss_a, miss_b,
        sigma, tau_int, tau_fc, tau_pep, pop_mu)
 } #end prepare()
 
@@ -195,7 +201,19 @@ makeX <- function(df){
     }
 } #end makeX()
 
-
+#function designed to fit a probit regression and extract relevant info
+rProbit <- function(boolVec, covar){
+  maxMiss <- max(covar[boolVec == 0])
+  minObs <- min(covar[boolVec == 1])
+  minMiss <- min(covar[boolVec == 0])
+ print(paste("minMiss = ", minMiss, " maxMiss = ", maxMiss,
+              "minObs = ", minObs ))
+  if(maxMiss < minObs){stop("Complete separation has occured!")}
+  mod <- glm(boolVec ~ covar,
+                              family = binomial(link = "probit"))
+  newMiss <- mvtnorm::rmvnorm(1, mod$coefficients, vcov(mod))
+  c(newMiss[1], newMiss[2])
+}
 
 #Maybe need the below, not sure yet
 #function for extracting the condition number from labels

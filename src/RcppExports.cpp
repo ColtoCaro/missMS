@@ -7,8 +7,8 @@
 using namespace Rcpp;
 
 // gibbsCpp
-List gibbsCpp(List y_list, NumericMatrix y_miss_, NumericMatrix r_obs_, List matList, List pointers, NumericMatrix intercepts_, NumericMatrix fcs_, NumericMatrix peps_, NumericMatrix miss_a_, NumericMatrix miss_b_, NumericMatrix sigma_, NumericMatrix tau_int_, NumericMatrix tau_fc_, NumericMatrix tau_pep_);
-RcppExport SEXP _missMS_gibbsCpp(SEXP y_listSEXP, SEXP y_miss_SEXP, SEXP r_obs_SEXP, SEXP matListSEXP, SEXP pointersSEXP, SEXP intercepts_SEXP, SEXP fcs_SEXP, SEXP peps_SEXP, SEXP miss_a_SEXP, SEXP miss_b_SEXP, SEXP sigma_SEXP, SEXP tau_int_SEXP, SEXP tau_fc_SEXP, SEXP tau_pep_SEXP) {
+List gibbsCpp(List y_list, NumericMatrix y_miss_, NumericMatrix r_obs_, List matList, List pointers, NumericMatrix intercepts_, NumericMatrix fcs_, NumericMatrix peps_, NumericMatrix int_mu_, NumericMatrix miss_a_, NumericMatrix miss_b_, NumericMatrix sigma_, NumericMatrix tau_int_, NumericMatrix tau_fc_, NumericMatrix tau_pep_, NumericMatrix yVec_, Function rProbit);
+RcppExport SEXP _missMS_gibbsCpp(SEXP y_listSEXP, SEXP y_miss_SEXP, SEXP r_obs_SEXP, SEXP matListSEXP, SEXP pointersSEXP, SEXP intercepts_SEXP, SEXP fcs_SEXP, SEXP peps_SEXP, SEXP int_mu_SEXP, SEXP miss_a_SEXP, SEXP miss_b_SEXP, SEXP sigma_SEXP, SEXP tau_int_SEXP, SEXP tau_fc_SEXP, SEXP tau_pep_SEXP, SEXP yVec_SEXP, SEXP rProbitSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -20,13 +20,16 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< NumericMatrix >::type intercepts_(intercepts_SEXP);
     Rcpp::traits::input_parameter< NumericMatrix >::type fcs_(fcs_SEXP);
     Rcpp::traits::input_parameter< NumericMatrix >::type peps_(peps_SEXP);
+    Rcpp::traits::input_parameter< NumericMatrix >::type int_mu_(int_mu_SEXP);
     Rcpp::traits::input_parameter< NumericMatrix >::type miss_a_(miss_a_SEXP);
     Rcpp::traits::input_parameter< NumericMatrix >::type miss_b_(miss_b_SEXP);
     Rcpp::traits::input_parameter< NumericMatrix >::type sigma_(sigma_SEXP);
     Rcpp::traits::input_parameter< NumericMatrix >::type tau_int_(tau_int_SEXP);
     Rcpp::traits::input_parameter< NumericMatrix >::type tau_fc_(tau_fc_SEXP);
     Rcpp::traits::input_parameter< NumericMatrix >::type tau_pep_(tau_pep_SEXP);
-    rcpp_result_gen = Rcpp::wrap(gibbsCpp(y_list, y_miss_, r_obs_, matList, pointers, intercepts_, fcs_, peps_, miss_a_, miss_b_, sigma_, tau_int_, tau_fc_, tau_pep_));
+    Rcpp::traits::input_parameter< NumericMatrix >::type yVec_(yVec_SEXP);
+    Rcpp::traits::input_parameter< Function >::type rProbit(rProbitSEXP);
+    rcpp_result_gen = Rcpp::wrap(gibbsCpp(y_list, y_miss_, r_obs_, matList, pointers, intercepts_, fcs_, peps_, int_mu_, miss_a_, miss_b_, sigma_, tau_int_, tau_fc_, tau_pep_, yVec_, rProbit));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -43,7 +46,7 @@ END_RCPP
 }
 
 static const R_CallMethodDef CallEntries[] = {
-    {"_missMS_gibbsCpp", (DL_FUNC) &_missMS_gibbsCpp, 14},
+    {"_missMS_gibbsCpp", (DL_FUNC) &_missMS_gibbsCpp, 17},
     {"_missMS_rnormCpp", (DL_FUNC) &_missMS_rnormCpp, 1},
     {NULL, NULL, 0}
 };

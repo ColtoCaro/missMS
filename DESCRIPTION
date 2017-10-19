@@ -12,5 +12,5 @@ License: GPL (>=3)
 Encoding: UTF-8
 LazyData: true
 LinkingTo: Rcpp, RcppArmadillo
-Imports: Rcpp (>= 0.12.11), reshape2 (>= 1.4.2)
+Imports: Rcpp (>= 0.12.11), reshape2 (>= 1.4.2), mvtnorm (>= 1.0-6)
 RoxygenNote: 6.0.1
