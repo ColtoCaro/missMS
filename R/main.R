@@ -29,6 +29,7 @@ smp <- function(dat, nCores = 1, ndraws = 2000){
   yVec <- readyDat$lintensity
   yVec[is.na(yVec)] <- 0
   #call the C++ Gibbs Sampler
+  set.seed(777)
   testRes <- gibbsCpp(initList[[1]],
            as.matrix(initList[[2]]),
            as.matrix(initList[[3]]),
@@ -44,7 +45,10 @@ smp <- function(dat, nCores = 1, ndraws = 2000){
            as.matrix(initList[[13]]),
            as.matrix(initList[[14]]),
            as.matrix(initList[[15]]),
-           as.matrix(yVec), rProbit)
+           as.matrix(yVec), rProbit, rsn)
 
-
+#5464 might be trouble
+  levels(factor(readyDat$protein))[5464]
 } #end of smp function
+
+

@@ -174,7 +174,7 @@ prepare <- function(df, ndraws, pop){
   tau_fc <- matrix(0, nrow = 1, ncol = ndraws)
   tau_pep <- matrix(0, nrow = 1, ncol = ndraws)
 
-  sigma[1 , 1] <- .3
+  sigma[1 , 1] <- .001
   tau_int[1 , 1] <- 2
   tau_fc[1 , 1] <- 1
   tau_pep[1 , 1] <- 1
