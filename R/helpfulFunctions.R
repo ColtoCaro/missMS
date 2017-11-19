@@ -89,10 +89,10 @@ prepare <- function(df, ndraws, pop){
   n_parList <- lapply(matList, ncol)
   n_pars <- do.call(sum, n_parList)
   n_cond <- length(unique(df$condID))
-  n_pep <- n_pars - (n_cond * n_prot)
+  n_pep <- n_pars - ((n_cond - 1) * n_prot)
 
   #generate parameter matrices
-  intercepts <- matrix(0, nrow = n_prot, ncol = ndraws)
+  #intercepts <- matrix(0, nrow = n_prot, ncol = ndraws)
   fcs <- matrix(0, nrow = n_prot * (n_cond - 1), ncol = ndraws)
   peps <- matrix(0, nrow = n_pep, ncol = ndraws)
   int_mu <- matrix(0, nrow = 1, ncol = ndraws)
@@ -106,18 +106,25 @@ prepare <- function(df, ndraws, pop){
   for(i in 1:n_prot){
     pointMat <- matrix(0, nrow = n_parList[[i]], ncol = 2)
     for(j in 1:n_parList[[i]]){
-      if(j == 1){
-        int_i <- int_i + 1
-        pointMat[j, ] <- c(1, int_i)
-      }
-      if((j > 1) & (j <= n_cond)){
-        fc_i <- fc_i + 1
-        pointMat[j, ] <- c(2, fc_i)
-      }
-      if(j > n_cond){
-        pep_i <- pep_i + 1
-        pointMat[j, ] <- c(3, pep_i)
-      }
+      # if(j == 1){
+      #   int_i <- int_i + 1
+      #   pointMat[j, ] <- c(1, int_i)
+      # }
+      # if((j > 1) & (j <= n_cond)){
+      #   fc_i <- fc_i + 1
+      #   pointMat[j, ] <- c(2, fc_i)
+      # }
+      # if(j > n_cond){
+      #   pep_i <- pep_i + 1
+      #   pointMat[j, ] <- c(3, pep_i)
+      # }
+      if(j <= (nrow(pointMat) - n_cond + 1)){
+           pep_i <- pep_i + 1
+           pointMat[j, ] <- c(3, pep_i)
+      }else{
+           fc_i <- fc_i + 1
+           pointMat[j, ] <- c(2, fc_i)
+        }
     }
     pointers[[i]] <- pointMat
   }
@@ -143,7 +150,7 @@ prepare <- function(df, ndraws, pop){
 
     beta <- solve(t(X_) %*% X_) %*% t(X_) %*% vec
 
-    intercepts[pointers[1, 2], 1] <<- beta[1]
+    #intercepts[pointers[1, 2], 1] <<- beta[1]
     index <- which(pointers[ , 1] == 2)
     fcs[pointers[index , 2], 1] <<- beta[index]
     index <- which(pointers[ , 1] == 3)
@@ -165,7 +172,7 @@ prepare <- function(df, ndraws, pop){
   print("done with OLS")
 
   #set intercept hyper mean
-  int_mu[1] <- mean(intercepts[ , 1])
+  int_mu[1] <- mean(peps[ , 1])
 
   #Now do the variance components
   #generate parameter matrices
@@ -185,7 +192,7 @@ prepare <- function(df, ndraws, pop){
   }
 
   list(y_list, y_miss, r_obs, matList, pointers,
-       intercepts, fcs, peps, int_mu, miss_a, miss_b,
+       fcs, peps, int_mu, miss_a, miss_b,
        sigma, tau_int, tau_fc, tau_pep, pop_mu)
 } #end prepare()
 
@@ -195,9 +202,9 @@ prepare <- function(df, ndraws, pop){
 makeX <- function(df){
   multiPep <- (length(unique(df$peptide)) > 1)
     if(multiPep){
-      mat <- model.matrix(~ factor(condID) + factor(peptide), df)
+      mat <- model.matrix(~ 0 + factor(peptide) + factor(condID), df)
     }else{
-      mat <- model.matrix(~ factor(condID), df)
+      mat <- model.matrix(~ 0 + factor(condID), df)
     }
 } #end makeX()
 

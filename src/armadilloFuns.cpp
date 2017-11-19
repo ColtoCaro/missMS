@@ -100,7 +100,7 @@ double sampN(const double sumDiff, const double tau, const double beta,
 arma::vec updateBlock(int index, int iter, NumericMatrix yMat_,
                  arma::mat &yMiss,
                  NumericMatrix xMat_, NumericMatrix pointers,
-                 arma::mat &intercepts, arma::mat &fcs,
+                 arma::mat &fcs,
                  arma::mat &peps, const double miss_a,
                  const double miss_b, const double sigma,
                  const double tau_int, const double tau_fc,
@@ -114,7 +114,7 @@ arma::vec updateBlock(int index, int iter, NumericMatrix yMat_,
   arma::vec theta(nPars); theta.zeros() ;
   for(int p = 0; p < nPars; p++){
     if(pointers(p, 0) == 1){
-      theta(p) = intercepts(pointers(p, 1) - 1, iter) ;
+      //theta(p) = intercepts(pointers(p, 1) - 1, iter) ;
     }else{
       if(pointers(p, 0) == 2){
         theta(p) = fcs(pointers(p, 1) - 1, iter) ;
@@ -183,7 +183,7 @@ arma::vec updateBlock(int index, int iter, NumericMatrix yMat_,
     if(pointers(p, 0) == 1){
       double newInt = sampN(sumDiff(p), tau_int, int_beta, sigma, nYs(p), p) ;
       //double newInt = sumDiff(p) / nYs(p) ;
-      intercepts(pointers(p, 1) - 1, iter + 1) = newInt ;
+      //intercepts(pointers(p, 1) - 1, iter + 1) = newInt ;
       theta2(p) = newInt ;
     }else{
       if(pointers(p, 0) == 2){
@@ -201,21 +201,21 @@ arma::vec updateBlock(int index, int iter, NumericMatrix yMat_,
   }
 
   arma::vec resid = y_ - xMat * theta2 ;
-  if(index == 5463){  //5463
+  if(index == 0){  //5463
     //Rcout << " n_ = " << nYs << std::endl ;
    //Rcout << "delta theta = " << theta2 - theta << std::endl ;
    // Rcout << "sumdiff = " << sumDiff << std::endl ;
     //Rcout << "groupY" << sum(groupYs) << std::endl ;
-    //Rcout << "theta = " << theta << std::endl ;
-    //Rcout << "theta2 = " << theta2 << std::endl ;
+    Rcout << "theta = " << theta << std::endl ;
+    Rcout << "theta2 = " << theta2 << std::endl ;
    // Rcout << " delta resid "<< index << " = " <<
     //  y_ - xMat * theta - resid << std::endl ;
-    //Rcout << " sum/J = " << sumDiff/nYs << std::endl ;
+    Rcout << " sum/J = " << sumDiff/nYs << std::endl ;
     //Rcout << " addback = " << addBack << std::endl ;
     //Rcout << " groupYs = " << groupYs << std::endl ;
     //Rcout << " xxi = " << xxi << std::endl ;
     //Rcout << " newMat = " << newMat << std::endl ;
-    //Rcout << " y_ = " << y_ << std::endl ;
+    Rcout << " y_ = " << y_ << std::endl ;
     //Rcout << " xi = " << xi << std::endl ;
     Rcout << " mean Resid = " << mean(resid) << std::endl ;
     //Rcout << " xMat = " << xMat << std::endl ;
@@ -270,7 +270,6 @@ List gibbsCpp(List y_list,
               NumericMatrix r_obs_,
               List matList,
               List pointers,
-              NumericMatrix intercepts_,
               NumericMatrix fcs_,
               NumericMatrix peps_,
               NumericMatrix int_mu_,
@@ -288,8 +287,8 @@ List gibbsCpp(List y_list,
   //convert to armadillo objects
   arma::mat y_miss(y_miss_.begin(), y_miss_.nrow(), y_miss_.ncol(), false) ;
   arma::mat r_obs(r_obs_.begin(), r_obs_.nrow(), r_obs_.ncol(), false) ;
-  arma::mat intercepts(intercepts_.begin(), intercepts_.nrow(),
-                       intercepts_.ncol(), false) ;
+  //arma::mat intercepts(intercepts_.begin(), intercepts_.nrow(),
+                    //   intercepts_.ncol(), false) ;
   arma::mat fcs(fcs_.begin(), fcs_.nrow(), fcs_.ncol(), false) ;
   arma::mat peps(peps_.begin(), peps_.nrow(), peps_.ncol(), false) ;
   arma::mat int_mu(int_mu_.begin(), int_mu_.nrow(), int_mu_.ncol(), false) ;
@@ -314,7 +313,7 @@ List gibbsCpp(List y_list,
       NumericMatrix point1 = pointers[prot] ;
       arma::vec tempResid = arf::updateBlock(prot, iter, y1, y_miss,
                                  mat1, point1,
-                                 intercepts, fcs,
+                                  fcs, //intercepts,
                                  peps, miss_a(iter),
                                  miss_b(iter), sigma(iter),
                                  tau_int(iter), tau_fc(iter),
@@ -332,11 +331,11 @@ List gibbsCpp(List y_list,
 
 
   //update mean hyperparameters
-  int_mu(iter + 1) = arf::sampMu(intercepts.col(iter + 1),
+  int_mu(iter + 1) = arf::sampMu(peps.col(iter + 1),
          10000, tau_int(iter)) ;
 
   //update variance components
-  tau_int(iter + 1) = arf::sampV(intercepts.col(iter + 1), .001, int_mu(iter + 1)) ;
+  //tau_int(iter + 1) = arf::sampV(intercepts.col(iter + 1), .001, int_mu(iter + 1)) ;
   //tau_int(iter + 1) = tau_int(iter) ;
 
   tau_fc(iter + 1) = arf::sampV(fcs.col(iter + 1), .001, 0) ;
@@ -365,7 +364,7 @@ List gibbsCpp(List y_list,
   Rcout << "End iteration " << iter << std::endl ;
   } //end iteration loop
 
-  return List::create(Named("fcs") = fcs, Named("intercepts") = intercepts,
+  return List::create(Named("fcs") = fcs,
                       Named("peps") = peps, Named("int_mu") = int_mu,
                       Named("miss_a") = miss_a, Named("miss_b") = miss_b,
                       Named("sigma") = sigma, Named("tau_int") = tau_int,

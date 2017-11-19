@@ -23,7 +23,7 @@ smp <- function(dat, nCores = 1, ndraws = 2000){
   readyDat <- transformDat(dat)
   initList <- prepare(readyDat, ndraws, pop) #function returns, in order:
   #y_list, y_miss, r_obs, matList, pointers,
-  #intercepts, fcs, peps, int_mu, miss_a, miss_b,
+  # fcs, peps, int_mu, miss_a, miss_b,
   #sigma, tau_int, tau_fc, tau_pep, pop_mu
 
   yVec <- readyDat$lintensity
@@ -44,7 +44,6 @@ smp <- function(dat, nCores = 1, ndraws = 2000){
            as.matrix(initList[[12]]),
            as.matrix(initList[[13]]),
            as.matrix(initList[[14]]),
-           as.matrix(initList[[15]]),
            as.matrix(yVec), rProbit, rsn)
 
 #5464 might be trouble
