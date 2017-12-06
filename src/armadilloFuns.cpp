@@ -144,11 +144,11 @@ arma::vec updateBlock(int index, int iter, NumericMatrix yMat_,
       y_(j) = tempy(0) ;
       //y_(j) = yMiss(yMat(j, 1) - 1, iter) ;
       yMiss(yMat(j, 1) - 1, iter + 1) = y_(j) ;
-      if(index == -5463){
-        //Rcout << " omega = " << omega << std::endl ;
-        //Rcout << " alpha = " << alpha << std::endl ;
-        //Rcout << " temptau = " << temptau << std::endl ;
-        //Rcout << " xi = " << xi(j) << std::endl ;
+      if(index == -870){
+        Rcout << " omega = " << omega << std::endl ;
+        Rcout << " alpha = " << alpha << std::endl ;
+        Rcout << " temptau = " << temptau << std::endl ;
+        Rcout << " xi = " << xi(j) << std::endl ;
         Rcout << " ymiss = " << y_(j) << std::endl ;
       }
     }else{
@@ -161,66 +161,76 @@ arma::vec updateBlock(int index, int iter, NumericMatrix yMat_,
   Rcout << " theta = " << theta << std::endl ;
   Rcout << " xi = " << xi << std::endl ;
   }
-  //Now update the mean parameters
-  arma::mat xxi(size(xMat)) ; xxi.zeros() ;
-  arma::mat groupYs(nObs, nPars) ; groupYs.zeros() ;
-  for(int rw = 0; rw < nObs; rw++){
-    xxi.row(rw) = xMat.row(rw) * xi(rw) ;
-    groupYs.row(rw) = xMat.row(rw) * y_(rw) ;
- }
-
-  arma::mat addBack(nObs, nPars) ; addBack.zeros() ;
-  for(int cl = 0; cl < nPars; cl++){
-    addBack.col(cl) = xMat.col(cl) * theta(cl) ;
-  }
-
-  arma::mat newMat = groupYs - xxi + addBack ;
-  arma::rowvec sumDiff = sum(newMat) ;
-  arma::rowvec nYs = sum(xMat) ;
 
   arma::vec theta2(nPars) ; theta2.zeros() ;
+  theta2 = theta ;
   for(int p = 0; p < nPars; p++){
-    if(pointers(p, 0) == 1){
-      double newInt = sampN(sumDiff(p), tau_int, int_beta, sigma, nYs(p), p) ;
-      //double newInt = sumDiff(p) / nYs(p) ;
-      //intercepts(pointers(p, 1) - 1, iter + 1) = newInt ;
-      theta2(p) = newInt ;
-    }else{
-      if(pointers(p, 0) == 2){
+    //Now update the mean parameters one at a time
+    xi = xMat * theta2 ;
+
+    arma::mat xxi(size(xMat)) ; xxi.zeros() ;
+    arma::mat groupYs(nObs, nPars) ; groupYs.zeros() ;
+    for(int rw = 0; rw < nObs; rw++){
+      xxi.row(rw) = xMat.row(rw) * xi(rw) ;
+      groupYs.row(rw) = xMat.row(rw) * y_(rw) ;
+    }
+
+    arma::mat addBack(nObs, nPars) ; addBack.zeros() ;
+    for(int cl = 0; cl < nPars; cl++){
+      addBack.col(cl) = xMat.col(cl) * theta2(cl) ;
+    }
+
+    arma::mat newMat = groupYs - xxi + addBack ;
+    arma::rowvec sumDiff = sum(newMat) ;
+    arma::rowvec nYs = sum(xMat) ;
+
+
+
+    // if(pointers(p, 0) == 1){
+    //   double newInt = sampN(sumDiff(p), tau_int, int_beta, sigma, nYs(p), p) ;
+    //   //double newInt = sumDiff(p) / nYs(p) ;
+    //   //intercepts(pointers(p, 1) - 1, iter + 1) = newInt ;
+    //   theta2(p) = newInt ;
+    // }else{
+       if(pointers(p, 0) == 2){
         double newFc = sampN(sumDiff(p), tau_fc, 0, sigma, nYs(p), p) ;
         //double newFc = sumDiff(p) / nYs(p) ;
         fcs(pointers(p, 1) - 1, iter + 1) = newFc ;
         theta2(p) = newFc ;
       }else{
-        double newPep = sampN(sumDiff(p), tau_pep, 0, sigma, nYs(p), p) ;
+        double newPep = sampN(sumDiff(p), tau_pep, int_beta, sigma, nYs(p), p) ;
         //double newPep = sumDiff(p) / nYs(p) ;
         peps(pointers(p, 1) - 1, iter + 1) = newPep ;
         theta2(p) = newPep ;
       }
-    }
+// }
   }
 
   arma::vec resid = y_ - xMat * theta2 ;
-  if(index == 0){  //5463
+  //arma::vec testResid(nObs); testResid.zeros() ;
+  //testResid = y_ - xMat * theta2 ;
+ // if(index == 0){  //5463
     //Rcout << " n_ = " << nYs << std::endl ;
    //Rcout << "delta theta = " << theta2 - theta << std::endl ;
    // Rcout << "sumdiff = " << sumDiff << std::endl ;
     //Rcout << "groupY" << sum(groupYs) << std::endl ;
-    Rcout << "theta = " << theta << std::endl ;
-    Rcout << "theta2 = " << theta2 << std::endl ;
+   // Rcout << "theta = " << theta << std::endl ;
+  //  Rcout << "theta2 = " << theta2 << std::endl ;
    // Rcout << " delta resid "<< index << " = " <<
     //  y_ - xMat * theta - resid << std::endl ;
-    Rcout << " sum/J = " << sumDiff/nYs << std::endl ;
+  //  Rcout << " sum/J = " << sumDiff/nYs << std::endl ;
     //Rcout << " addback = " << addBack << std::endl ;
     //Rcout << " groupYs = " << groupYs << std::endl ;
     //Rcout << " xxi = " << xxi << std::endl ;
     //Rcout << " newMat = " << newMat << std::endl ;
-    Rcout << " y_ = " << y_ << std::endl ;
+    //Rcout << " y_ = " << y_ << std::endl ;
     //Rcout << " xi = " << xi << std::endl ;
-    Rcout << " mean Resid = " << mean(resid) << std::endl ;
+    //Rcout << " Resid = " << resid << std::endl ;
+  //  Rcout << " test Resid = " << testResid << std::endl ;
+   // Rcout << " mean Resid = " << mean(resid) << std::endl ;
     //Rcout << " xMat = " << xMat << std::endl ;
 
-  }
+ // }
   return (resid);
   } // end updateBlock
 
@@ -228,7 +238,7 @@ double sampV(arma::vec parVec, double hyp, double parMean){
   int nPars = parVec.size() ;
   double postShape = hyp + nPars / 2 ;
   arma::vec meanVec(nPars) ; meanVec.fill(parMean) ;
-  double postScale = 1 / (hyp + sum(square(parVec - parMean)) / 2 ) ;
+  double postScale =  1 / (hyp + sum(square(parVec - parMean)) / 2 ) ;
 
  // Rcout << "gamma mean = " << postShape * postScale  <<
 //    " gamma Var = " << postShape * postScale * postScale << std::endl;
@@ -281,7 +291,8 @@ List gibbsCpp(List y_list,
               NumericMatrix tau_pep_,
               NumericMatrix yVec_,
               Function rProbit,
-              Function rsn){
+              Function rsn,
+              NumericMatrix resids_){
 
   int n_prot = matList.size() ;
   //convert to armadillo objects
@@ -299,13 +310,14 @@ List gibbsCpp(List y_list,
   arma::mat tau_fc(tau_fc_.begin(), tau_fc_.nrow(), tau_fc_.ncol(), false) ;
   arma::mat tau_pep(tau_pep_.begin(), tau_pep_.nrow(), tau_pep_.ncol(), false) ;
   arma::mat yVec(yVec_.begin(), yVec_.nrow(), yVec_.ncol(), false) ;
+  arma::mat resids(resids_.begin(), resids_.nrow(), resids_.ncol(), false) ;
 
   //Set missing index before imputing the missing values
   arma::uvec missIndex = find(yVec == 0) ;
 
   //update missing values and mean parameters
   for(int iter = 0; iter < (tau_pep.n_cols - 1) ; iter++){  // (tau_pep.n_cols - 1)
-    arma::vec resids(r_obs.size()) ; resids.zeros() ;
+    //arma::vec resids(r_obs.size()) ; resids.zeros() ;
     int residCount = 0 ;
     for(int prot = 0; prot < n_prot; prot++){  //
       NumericMatrix y1 = y_list[prot] ;
@@ -319,7 +331,7 @@ List gibbsCpp(List y_list,
                                  tau_int(iter), tau_fc(iter),
                                  tau_pep(iter), int_mu(iter), rsn) ;
       for(int resI = 0; resI < tempResid.size(); resI++){
-        resids(resI + residCount) = tempResid(resI) ;
+        resids(resI + residCount, iter + 1) = tempResid(resI) ;
       }
       residCount = residCount + tempResid.size() ;
 
@@ -332,7 +344,7 @@ List gibbsCpp(List y_list,
 
   //update mean hyperparameters
   int_mu(iter + 1) = arf::sampMu(peps.col(iter + 1),
-         10000, tau_int(iter)) ;
+         10000, tau_pep(iter)) ;
 
   //update variance components
   //tau_int(iter + 1) = arf::sampV(intercepts.col(iter + 1), .001, int_mu(iter + 1)) ;
@@ -340,15 +352,17 @@ List gibbsCpp(List y_list,
 
   tau_fc(iter + 1) = arf::sampV(fcs.col(iter + 1), .001, 0) ;
   //tau_fc(iter + 1) = tau_fc(iter) ;
-  tau_pep(iter + 1) = arf::sampV(peps.col(iter + 1), .001, 0) ;
+  tau_pep(iter + 1) = arf::sampV(peps.col(iter + 1), .001, int_mu(iter + 1)) ;
   //tau_pep(iter + 1) = tau_pep(iter) ;
 
-  sigma(iter + 1) = arf::sampV(resids, .001, 0) ;
-  //sigma(iter + 1) = .0001 ;
+
+  //Rcout << "resids = " << resids << std::endl ;
+  sigma(iter + 1) = arf::sampV(resids.col(iter + 1), .001, 0) ;
+  //sigma(iter + 1) = var(resids) ;
 
   Rcout << "VC's updated "<< std::endl ;
-  Rcout << "resid mean "<< mean(resids) << std::endl ;
-  Rcout << "resid var "<< var(resids) << std::endl ;
+  //Rcout << "resid mean "<< mean(resids) << std::endl ;
+  //Rcout << "resid var "<< var(resids) << std::endl ;
 
   Rcout << "check 1 "<< std::endl ;
   //update missing data parameters

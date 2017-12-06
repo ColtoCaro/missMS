@@ -8,7 +8,7 @@
 #'
 #' @export
 
-smp <- function(dat, nCores = 1, ndraws = 2000){
+smp <- function(dat, nCores = 1, ndraws = 2000, pop = FALSE){
 
   if(dat[2, 1] == 1){
     pop <- TRUE
@@ -24,7 +24,7 @@ smp <- function(dat, nCores = 1, ndraws = 2000){
   initList <- prepare(readyDat, ndraws, pop) #function returns, in order:
   #y_list, y_miss, r_obs, matList, pointers,
   # fcs, peps, int_mu, miss_a, miss_b,
-  #sigma, tau_int, tau_fc, tau_pep, pop_mu
+  #sigma, tau_int, tau_fc, tau_pep, pop_mu, n_used, estimable, resids
 
   yVec <- readyDat$lintensity
   yVec[is.na(yVec)] <- 0
@@ -44,7 +44,8 @@ smp <- function(dat, nCores = 1, ndraws = 2000){
            as.matrix(initList[[12]]),
            as.matrix(initList[[13]]),
            as.matrix(initList[[14]]),
-           as.matrix(yVec), rProbit, rsn)
+           as.matrix(yVec), rProbit, rsn,
+           as.matrix(initList[[18]]))
 
 #5464 might be trouble
   levels(factor(readyDat$protein))[5464]

@@ -20,6 +20,13 @@ transformDat <- function(df){
   if(df[2, 1] == 0){
     df[2, ][] <- 0
   }
+  #eliminate rows with zero observations
+  missIndex <- apply(df[3:nrow(df), 3:ncol(df)], 1, function(x)
+    (sum(is.na(x)) == ncol(df) - 2 ))
+  if(sum(missIndex) > 0){
+    mI <- which(missIndex == 1) + 2
+    df <- df[-mI, ]
+  }# end eliminate missing rows
 
   n_ <- nrow(df)
 
@@ -76,7 +83,7 @@ prepare <- function(df, ndraws, pop){
   miss_b[1] <- (qnorm(.8) - qnorm(.01)) / (x100 - x0)
   miss_a[1] <- qnorm(.01) - miss_b[1] * x0
   #make initial guess for missing values.  Don't want complete separation!
-  y_miss[ , 1] <- mean(df$lintensity[r_obs == 1])
+  #y_miss[ , 1] <- mean(df$lintensity[r_obs == 1])  #do this later#
 
   #create list of design matrices
   if(pop == FALSE){
@@ -94,6 +101,7 @@ prepare <- function(df, ndraws, pop){
   #generate parameter matrices
   #intercepts <- matrix(0, nrow = n_prot, ncol = ndraws)
   fcs <- matrix(0, nrow = n_prot * (n_cond - 1), ncol = ndraws)
+  n_used <- fcs[ , 1]
   peps <- matrix(0, nrow = n_pep, ncol = ndraws)
   int_mu <- matrix(0, nrow = 1, ncol = ndraws)
 
@@ -145,16 +153,25 @@ prepare <- function(df, ndraws, pop){
   #closure function for computing intial parameter estimates
   ols_init <- function(y_, X_, pointers){
     vec <- rep(0, nrow(y_))
-    vec[y_[ , 1] == 0] <- y_miss[y_[ , 2], 1]
+    isMiss <- which(y_[ , 1] == 0)
+    vec[isMiss] <- NA
     vec[y_[ , 1] != 0] <- y_[which(y_[ , 1] != 0), 1]
 
-    beta <- solve(t(X_) %*% X_) %*% t(X_) %*% vec
+    beta <- coef(lm(vec ~ 0 + X_))
+    obsUsed <- apply(t(t(solve(t(X_) %*% X_) %*% t(X_)) * vec), 1, sumObserved)
 
     #intercepts[pointers[1, 2], 1] <<- beta[1]
     index <- which(pointers[ , 1] == 2)
     fcs[pointers[index , 2], 1] <<- beta[index]
+    n_used[pointers[index , 2]] <<- obsUsed[index]
     index <- which(pointers[ , 1] == 3)
     peps[pointers[index , 2], 1] <<- beta[index]
+
+    #enter initial missing values
+    beta0 <- beta
+    beta0[which(is.na(beta0))] <- 0
+    xi0 <- X_ %*% beta0
+    y_miss[y_[isMiss , 2], 1] <<- xi0[isMiss]
 
     piter <- get("x", parent.frame())
     if(piter == 500){print("500 proteins initialized")}
@@ -173,6 +190,9 @@ prepare <- function(df, ndraws, pop){
 
   #set intercept hyper mean
   int_mu[1] <- mean(peps[ , 1])
+  #Take care of inestimable proteins
+  estimable <- !is.na(fcs[ , 1])
+  fcs[which(estimable == FALSE), 1] <- 0
 
   #Now do the variance components
   #generate parameter matrices
@@ -190,10 +210,12 @@ prepare <- function(df, ndraws, pop){
   if(pop == FALSE){pop_mu <- NULL}else{
     pop_mu <- NULL # Work on this later
   }
+  #create matrix for residuals
+  resids <- matrix(0, nrow = nrow(df), ncol = ndraws)
 
   list(y_list, y_miss, r_obs, matList, pointers,
        fcs, peps, int_mu, miss_a, miss_b,
-       sigma, tau_int, tau_fc, tau_pep, pop_mu)
+       sigma, tau_int, tau_fc, tau_pep, pop_mu, n_used, estimable, resids)
 } #end prepare()
 
 
@@ -204,9 +226,27 @@ makeX <- function(df){
     if(multiPep){
       mat <- model.matrix(~ 0 + factor(peptide) + factor(condID), df)
     }else{
-      mat <- model.matrix(~ 0 + factor(condID), df)
+      mat <- model.matrix(~ factor(condID), df)
     }
 } #end makeX()
+
+#function for adding up the number of observed non-zero values in a row
+sumObserved <- function(vec){
+  vec <- round(vec, 10)
+  vec[vec == 0] <- NA
+  sum(!is.na(vec))
+}
+
+# ccX <- function(df){
+#   missIndex <- which(is.na(df$lintensity))
+#   df <- df[-missIndex, ]
+#   multiCond <- (length(unique(df$condID)) > 1)
+#   if(multiCond){
+#     mat <- model.matrix(~ 0 + factor(peptide) + factor(condID), df)
+#   }else{
+#     mat <- model.matrix(~ 0 + factor(peptide), df)
+#   }
+# } #end ccX()
 
 #function designed to fit a probit regression and extract relevant info
 rProbit <- function(boolVec, covar){
