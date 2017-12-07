@@ -7,10 +7,11 @@ Authors@R: c(person("Jonathon", "O'Brien", email = "obrienj@hms.harvard.edu",
 Description: This package enables the fitting of a Bayesian selction model for
     label-free proteomics experiments.  The selection model takes into account
     all observed and missing values which can improve on estimation accuracy.
-    All user specificiatio are made through the formatting of the data file.
+    All user specificiations are made through the formatting of the data file.
 License: GPL (>=3)
 Encoding: UTF-8
 LazyData: true
 LinkingTo: Rcpp, RcppArmadillo
-Imports: Rcpp (>= 0.12.11), reshape2 (>= 1.4.2), mvtnorm (>= 1.0-6), sn (>= 1.5-0)
+Imports: Rcpp (>= 0.12.11), reshape2 (>= 1.4.2), mvtnorm (>= 1.0-6), 
+    sn (>= 1.5-0), RcppArmadillo (>= 0.7.800.2.0)
 RoxygenNote: 6.0.1
