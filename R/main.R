@@ -45,7 +45,7 @@ smp <- function(dat, ndraws = 20000, burn = 1000){
                       as.matrix(initList[[12]]),
                       as.matrix(initList[[13]]),
                       as.matrix(initList[[14]]),
-                      as.matrix(yVec), rProbit, rsn,
+                      as.matrix(yVec), rProbit, sn::rsn,
                       as.matrix(initList[[18]]))
 
   #extract summary information
@@ -63,7 +63,7 @@ smp <- function(dat, ndraws = 20000, burn = 1000){
                          Estimable = initList[[17]] )
 
 
-  List(resTable, testRes)
+  list(resTable, testRes)
 
 
 } #end of smp function
