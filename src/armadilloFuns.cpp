@@ -149,12 +149,6 @@ arma::vec updateBlock(int index, int iter, NumericMatrix yMat_,
       y_(j) = yMat(j, 0) ;
     }
   }
-  if (index == -5463){
-
-  Rcout << " y_ = " << y_ << std::endl ;
-  Rcout << " theta = " << theta << std::endl ;
-  Rcout << " xi = " << xi << std::endl ;
-  }
 
   arma::vec theta2(nPars) ; theta2.zeros() ;
   theta2 = theta ;
@@ -234,13 +228,7 @@ double sampV(arma::vec parVec, double hyp, double parMean){
   arma::vec meanVec(nPars) ; meanVec.fill(parMean) ;
   double postScale =  1 / (hyp + sum(square(parVec - parMean)) / 2 ) ;
 
- // Rcout << "gamma mean = " << postShape * postScale  <<
-//    " gamma Var = " << postShape * postScale * postScale << std::endl;
-
- // RNGScope rngScope;
-
- // arma::arma_rng::set_seed_random() ;
-  GetRNGstate() ;
+ GetRNGstate() ;
   double newGamma = rgamma(1, postShape, postScale)(0) ;
   PutRNGstate() ;
   return(1 / newGamma) ;
@@ -251,9 +239,6 @@ double sampMu(arma::vec parVec, double hypVar, double parVar){
   double postMean = (sum(parVec) / parVar) / ((1 / hypVar) + (nPars / parVar));
   double postVar = 1 / ((1 / hypVar) + (nPars / parVar)) ;
 
- // RNGScope rngScope;
-
- // arma::arma_rng::set_seed_random() ;
   GetRNGstate() ;
   double newMean = rnorm(1, postMean, sqrt(postVar))(0) ;
   PutRNGstate() ;
@@ -263,9 +248,6 @@ double sampMu(arma::vec parVec, double hypVar, double parVar){
 
 
 } // end arf namespace
-
-
-
 
 // Run a custom Gibbs sampler for the SMP model
 // [[Rcpp::export()]]
@@ -310,8 +292,8 @@ List gibbsCpp(List y_list,
   arma::uvec missIndex = find(yVec == 0) ;
 
   //update missing values and mean parameters
-  for(int iter = 0; iter < (tau_pep.n_cols - 1) ; iter++){  // (tau_pep.n_cols - 1)
-    //arma::vec resids(r_obs.size()) ; resids.zeros() ;
+  for(int iter = 0; iter < (tau_pep.n_cols - 1) ; iter++){
+
     int residCount = 0 ;
     for(int prot = 0; prot < n_prot; prot++){  //
       NumericMatrix y1 = y_list[prot] ;
@@ -319,7 +301,7 @@ List gibbsCpp(List y_list,
       NumericMatrix point1 = pointers[prot] ;
       arma::vec tempResid = arf::updateBlock(prot, iter, y1, y_miss,
                                  mat1, point1,
-                                  fcs, //intercepts,
+                                  fcs,
                                  peps, miss_a(iter),
                                  miss_b(iter), sigma(iter),
                                  tau_int(iter), tau_fc(iter),
@@ -331,18 +313,12 @@ List gibbsCpp(List y_list,
 
 
     } // end protein loop
-    Rcout << "Prot loop done "<< std::endl ;
-    //Rcout << "mean resid "<<
-      //resids.subvec(residCount -5, residCount -1) << std::endl ;
-
 
   //update mean hyperparameters
   int_mu(iter + 1) = arf::sampMu(peps.col(iter + 1),
          10000, tau_pep(iter)) ;
 
   //update variance components
-  //tau_int(iter + 1) = arf::sampV(intercepts.col(iter + 1), .001, int_mu(iter + 1)) ;
-  //tau_int(iter + 1) = tau_int(iter) ;
 
   tau_fc(iter + 1) = arf::sampV(fcs.col(iter + 1), .001, 0) ;
   //tau_fc(iter + 1) = tau_fc(iter) ;
@@ -350,26 +326,19 @@ List gibbsCpp(List y_list,
   //tau_pep(iter + 1) = tau_pep(iter) ;
 
 
-  //Rcout << "resids = " << resids << std::endl ;
   sigma(iter + 1) = arf::sampV(resids.col(iter + 1), .001, 0) ;
   //sigma(iter + 1) = var(resids) ;
 
-  Rcout << "VC's updated "<< std::endl ;
-  //Rcout << "resid mean "<< mean(resids) << std::endl ;
-  //Rcout << "resid var "<< var(resids) << std::endl ;
-
-  Rcout << "check 1 "<< std::endl ;
   //update missing data parameters
   yVec.elem(missIndex) = y_miss.col(iter + 1) ;
 
-  Rcout << "check 2" << std::endl ;
-
   NumericVector tempMiss = rProbit(r_obs, yVec) ;
-  Rcout << "check 3"<< std::endl ;
   miss_a(iter + 1) = tempMiss(0) ;
   miss_b(iter + 1) = tempMiss(1) ;
 
-  Rcout << "End iteration " << iter << std::endl ;
+  if(iter == 99 || iter == 999 || iter == 4999 || iter == 9999  || iter == 19999){
+   Rcout << iter + 1 << " iterations complete" << std::endl ;
+  }
   } //end iteration loop
 
   return List::create(Named("fcs") = fcs,

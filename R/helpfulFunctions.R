@@ -253,8 +253,8 @@ rProbit <- function(boolVec, covar){
   maxMiss <- max(covar[boolVec == 0])
   minObs <- min(covar[boolVec == 1])
   minMiss <- min(covar[boolVec == 0])
- print(paste("minMiss = ", minMiss, " maxMiss = ", maxMiss,
-              "minObs = ", minObs ))
+ #print(paste("minMiss = ", minMiss, " maxMiss = ", maxMiss,
+ #             "minObs = ", minObs ))
   if(maxMiss < minObs){stop("Complete separation has occured!")}
   mod <- glm(boolVec ~ covar,
                               family = binomial(link = "probit"))
@@ -281,7 +281,6 @@ getCond <- function(strVec, ptm = FALSE){
 strReverse <- function(x){
   sapply(lapply(strsplit(x, NULL), rev), paste, collapse="")
 }
-
 
 
 
