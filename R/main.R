@@ -5,10 +5,11 @@
 #' @param dat Correctly formated and normalized data frame
 #' @param nCores Number of cores to use
 #' @param ndraws Number of draws of the Gibbs Sampler
+#' @param burn Number of draws to discard before summarizing the posterior
 #'
 #' @export
 
-smp <- function(dat, nCores = 1, ndraws = 2000, pop = FALSE){
+smp <- function(dat, nCores = 1, ndraws = 20000, burn = 1000){
 
   if(dat[2, 1] == 1){
     pop <- TRUE
@@ -47,8 +48,22 @@ smp <- function(dat, nCores = 1, ndraws = 2000, pop = FALSE){
            as.matrix(yVec), rProbit, rsn,
            as.matrix(initList[[18]]))
 
-#5464 might be trouble
-  levels(factor(readyDat$protein))[5464]
+  #extract summary information
+  postMeans <- apply(testRes[["fcs"]][ , burn:ndraws], 1, mean)
+  postVar <- apply(testRes[["fcs"]][ , burn:ndraws], 1, var)
+
+  protNames <- levels(factor(readyDat$protein))
+  conditions <- length(levels(factor(readyDat$condID)))
+  nameCol <- rep(protNames, each = (conditions - 1))
+  condCol <- rep(2:conditions, length(protNames))
+
+  resTable <- data.frame(Protein = nameCol, Condition = condCol,
+                         Mean = postMeans, Var = postVar,
+                         N_used = initList[[16]],
+                         Estimable = initList[[17]] )
+
+  List(resTable, testRes)
+
 } #end of smp function
 
 

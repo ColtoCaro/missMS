@@ -144,13 +144,7 @@ arma::vec updateBlock(int index, int iter, NumericMatrix yMat_,
       y_(j) = tempy(0) ;
       //y_(j) = yMiss(yMat(j, 1) - 1, iter) ;
       yMiss(yMat(j, 1) - 1, iter + 1) = y_(j) ;
-      if(index == -870){
-        Rcout << " omega = " << omega << std::endl ;
-        Rcout << " alpha = " << alpha << std::endl ;
-        Rcout << " temptau = " << temptau << std::endl ;
-        Rcout << " xi = " << xi(j) << std::endl ;
-        Rcout << " ymiss = " << y_(j) << std::endl ;
-      }
+
     }else{
       y_(j) = yMat(j, 0) ;
     }
