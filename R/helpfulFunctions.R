@@ -101,6 +101,7 @@ prepare <- function(df, ndraws, pop){
   #generate parameter matrices
   #intercepts <- matrix(0, nrow = n_prot, ncol = ndraws)
   fcs <- matrix(0, nrow = n_prot * (n_cond - 1), ncol = ndraws)
+  estimable <- fcs[ , 1]
   n_used <- fcs[ , 1]
   peps <- matrix(0, nrow = n_pep, ncol = ndraws)
   int_mu <- matrix(0, nrow = 1, ncol = ndraws)
@@ -158,14 +159,47 @@ prepare <- function(df, ndraws, pop){
     vec[y_[ , 1] != 0] <- y_[which(y_[ , 1] != 0), 1]
 
     beta <- coef(lm(vec ~ 0 + X_))
-    obsUsed <- apply(t(t(solve(t(X_) %*% X_) %*% t(X_)) * vec), 1, sumObserved)
+    obsUsed <- apply(t(t(solve(t(X_) %*% X_) %*% t(X_)) * vec),
+                     1, sumObserved)
 
     #intercepts[pointers[1, 2], 1] <<- beta[1]
-    index <- which(pointers[ , 1] == 2)
-    fcs[pointers[index , 2], 1] <<- beta[index]
-    n_used[pointers[index , 2]] <<- obsUsed[index]
-    index <- which(pointers[ , 1] == 3)
-    peps[pointers[index , 2], 1] <<- beta[index]
+    index2 <- which(pointers[ , 1] == 2)
+    fcs[pointers[index2 , 2], 1] <<- beta[index2]
+    n_used[pointers[index2 , 2]] <<- obsUsed[index2]
+    index3 <- which(pointers[ , 1] == 3)
+    peps[pointers[index3 , 2], 1] <<- beta[index3]
+
+    #regress on the observed rows to determine estimability
+    tempEst <- rep(0, length(index2))
+    #step 1. generate a design matrix of the observed row space
+    if((length(vec) - length(isMiss) > 1) & length(isMiss) > 1){
+    Xsmall <- t(X_[-isMiss, ])
+
+    #step 2. Regress the parameter indicator onto the row space
+
+      for(j in 1:length(index2)){
+      #create vector indicator vector for parameter to test
+        a_ = rep(0, nrow(Xsmall))
+        a_[length(index3) + j] <- 1
+
+        c_ <- coef(lm(a_ ~ 0 + Xsmall))
+        c_[is.na(c_)] <- 0
+
+        #step 3.  Test to see if the fit was perfect
+        tempEst[j] <- isTRUE(all.equal(a_, as.vector(Xsmall %*% c_),
+                              tolerance = 10^(-6)))
+
+      } #end for loop
+    }else{
+      if(length(isMiss) == 0){
+        tempEst <- TRUE
+        }else{
+          tempEst <- FALSE
+        }
+    }
+
+    #fill out the estimable vector
+    estimable[pointers[index2 , 2]] <<- tempEst
 
     #enter initial missing values
     beta0 <- beta
@@ -174,6 +208,7 @@ prepare <- function(df, ndraws, pop){
     y_miss[y_[isMiss , 2], 1] <<- xi0[isMiss]
 
     piter <- get("x", parent.frame())
+    #print(piter)
     if(piter == 500){print("500 proteins initialized")}
     if(piter == 1000){print("1000 proteins initialized")}
     if(piter == 2500){print("2500 proteins initialized")}
@@ -191,7 +226,7 @@ prepare <- function(df, ndraws, pop){
   #set intercept hyper mean
   int_mu[1] <- mean(peps[ , 1])
   #Take care of inestimable proteins
-  estimable <- !is.na(fcs[ , 1])
+  #estimable <- !is.na(fcs[ , 1])
   fcs[which(estimable == FALSE), 1] <- 0
 
   #Now do the variance components
