@@ -172,7 +172,7 @@ prepare <- function(df, ndraws, pop){
     #regress on the observed rows to determine estimability
     tempEst <- rep(0, length(index2))
     #step 1. generate a design matrix of the observed row space
-    if((length(vec) - length(isMiss) > 1) & length(isMiss) > 1){
+    if((length(vec) - length(isMiss) > 1) & length(isMiss) >= 1){
     Xsmall <- t(X_[-isMiss, ])
 
     #step 2. Regress the parameter indicator onto the row space
