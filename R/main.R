@@ -8,8 +8,10 @@
 #'
 #' @export
 
-smp <- function(dat, ndraws = 20000, burn = 1000){
-
+smp <- function(dat, ndraws = 20000, burn = 1000, melted = FALSE){
+  if(melted){
+    readyDat <- dat
+    }else{
   if(dat[2, 1] == 1){
     pop <- TRUE
     stop("Sorry, the population level model is currently in development")
@@ -21,7 +23,7 @@ smp <- function(dat, ndraws = 20000, burn = 1000){
 
   #transform data and initialize the Gibbs sampler
   readyDat <- transformDat(dat)
-
+    }
 
   initList <- prepare(readyDat, ndraws, pop) #function returns, in order:
   #y_list, y_miss, r_obs, matList, pointers,
