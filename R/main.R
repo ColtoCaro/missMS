@@ -11,6 +11,7 @@
 smp <- function(dat, ndraws = 20000, burn = 1000, melted = FALSE){
   if(melted){
     readyDat <- dat
+    pop <- FALSE
     }else{
   if(dat[2, 1] == 1){
     pop <- TRUE
