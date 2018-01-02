@@ -4,14 +4,19 @@
 \alias{smp}
 \title{Fit the Selection Model for Proteomics}
 \usage{
-smp(dat, nCores = 1, ndraws = 2000)
+smp(dat, ndraws = 20000, burn = 1000, melted = FALSE, fc_prior = 0)
 }
 \arguments{
 \item{dat}{Correctly formated and normalized data frame}
 
-\item{nCores}{Number of cores to use}
-
 \item{ndraws}{Number of draws of the Gibbs Sampler}
+
+\item{burn}{Number of draws to discard before summarizing the posterior}
+
+\item{fc_prior}{Explicitly set a prior for the variance of the fold change
+parameter.  By default this is set to zero which uses the usual shared
+variance component.  Specifying a weak prior will avoid shrinkage in the
+estimates.}
 }
 \description{
 Fit the Selection Model for Proteomics
