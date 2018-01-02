@@ -5,6 +5,10 @@
 #' @param dat Correctly formated and normalized data frame
 #' @param ndraws Number of draws of the Gibbs Sampler
 #' @param burn Number of draws to discard before summarizing the posterior
+#' @param fc_prior Explicitly set a prior for the variance of the fold change
+#'   parameter.  By default this is set to zero which uses the usual shared
+#'   variance component.  Specifying a weak prior will avoid shrinkage in the
+#'   estimates.
 #'
 #' @export
 
@@ -32,8 +36,8 @@ smp <- function(dat, ndraws = 20000, burn = 1000, melted = FALSE, fc_prior = 0){
   #sigma, tau_int, tau_fc, tau_pep, pop_mu, n_used, estimable, resids
 
   #reset tau_fc if a prior was selected
-  if(tau_fc > 0){
-    initList[[13]][1, 1] <- tau_fc
+  if(fc_prior > 0){
+    initList[[13]][1, 1] <- fc_prior
   }
 
   yVec <- readyDat$lintensity
