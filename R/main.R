@@ -8,7 +8,7 @@
 #'
 #' @export
 
-smp <- function(dat, ndraws = 20000, burn = 1000, melted = FALSE){
+smp <- function(dat, ndraws = 20000, burn = 1000, melted = FALSE, fc_prior = 0){
   if(melted){
     readyDat <- dat
     pop <- FALSE
@@ -31,6 +31,11 @@ smp <- function(dat, ndraws = 20000, burn = 1000, melted = FALSE){
   # fcs, peps, int_mu, miss_a, miss_b,
   #sigma, tau_int, tau_fc, tau_pep, pop_mu, n_used, estimable, resids
 
+  #reset tau_fc if a prior was selected
+  if(tau_fc > 0){
+    initList[[13]][1, 1] <- tau_fc
+  }
+
   yVec <- readyDat$lintensity
   yVec[is.na(yVec)] <- 0
   #call the C++ Gibbs Sampler
@@ -49,7 +54,8 @@ smp <- function(dat, ndraws = 20000, burn = 1000, melted = FALSE){
                       as.matrix(initList[[13]]),
                       as.matrix(initList[[14]]),
                       as.matrix(yVec), rProbit, sn::rsn,
-                      as.matrix(initList[[18]]))
+                      as.matrix(initList[[18]]),
+                      fc_prior)
 
   #extract summary information
   postMeans <- apply(testRes[["fcs"]][ , burn:ndraws], 1, mean)

@@ -268,7 +268,8 @@ List gibbsCpp(List y_list,
               NumericMatrix yVec_,
               Function rProbit,
               Function rsn,
-              NumericMatrix resids_){
+              NumericMatrix resids_,
+              double fc_prior){
 
   int n_prot = matList.size() ;
   //convert to armadillo objects
@@ -319,9 +320,12 @@ List gibbsCpp(List y_list,
          10000, tau_pep(iter)) ;
 
   //update variance components
+  if(fc_prior == 0){
+    tau_fc(iter + 1) = arf::sampV(fcs.col(iter + 1), .001, 0) ;
+  }else{
+    tau_fc(iter + 1) = fc_prior ;
+  }
 
-  tau_fc(iter + 1) = arf::sampV(fcs.col(iter + 1), .001, 0) ;
-  //tau_fc(iter + 1) = tau_fc(iter) ;
   tau_pep(iter + 1) = arf::sampV(peps.col(iter + 1), .001, int_mu(iter + 1)) ;
   //tau_pep(iter + 1) = tau_pep(iter) ;
 
