@@ -38,6 +38,7 @@ smp <- function(dat, ndraws = 20000, burn = 1000, melted = FALSE, fc_prior = 0){
   #reset tau_fc if a prior was selected
   if(fc_prior > 0){
     initList[[13]][1, 1] <- fc_prior
+    initList[[14]][1, 1] <- fc_prior
   }
 
   yVec <- readyDat$lintensity

@@ -325,8 +325,11 @@ List gibbsCpp(List y_list,
   }else{
     tau_fc(iter + 1) = fc_prior ;
   }
-
+  if(fc_prior == 0){
   tau_pep(iter + 1) = arf::sampV(peps.col(iter + 1), .001, int_mu(iter + 1)) ;
+  }else{
+    tau_pep(iter + 1) = fc_prior ;
+  }
   //tau_pep(iter + 1) = tau_pep(iter) ;
 
 
