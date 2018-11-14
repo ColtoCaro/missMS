@@ -16,4 +16,4 @@ been done to make the use of these models simple for the casual user and
 we have no plans to work further on the development of tools for LFQ 
 proteomics.  That said, if anyone has a serious interest in running the smp() 
 function and would like help getting the code working, I'm more than happy to help. 
-Feel free to send me a message.  
+Feel free to send me an email.  
